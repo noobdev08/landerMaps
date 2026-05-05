@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Map {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  price       Int
+  fileUrl     String   // Supabase Storage path
+  thumbnail   String   // Supabase Storage path
+  tags        String[]
+  changelog   String?  // optional update notes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  orders      Order[]
+  published   Boolean  @default(true) // ALL maps public by default
+}
+
+model Order {
+  id              Int      @id @default(autoincrement())
+  mapId           Int
+  map             Map      @relation(fields: [mapId], references: [id])
+  stripeSessionId String   @unique
+  buyerEmail      String
+  amountPaid      Int
+  createdAt       DateTime @default(now())
+}

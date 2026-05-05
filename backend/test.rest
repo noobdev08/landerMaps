@@ -1,0 +1,92 @@
+### Login
+POST http://localhost:5000/auth/login
+Content-Type: application/json
+
+{
+  "username": "lander1234",
+  "password": "landerMC@1234"
+}
+
+### Get All Maps (Public)
+GET http://localhost:5000/
+
+### Get Single Map (Public)
+GET http://localhost:5000/1
+
+### Get All Maps (Admin)
+GET http://localhost:5000/admin/maps
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxhbmRlcjEyMzQiLCJpYXQiOjE3NzU4MDA1ODksImV4cCI6MTc3NTg0Mzc4OX0.YeJTK6KX3MG68jvvpRQF01bjlHq09OWfk2Fm3cUYT5o
+
+### Create Map (Admin)
+POST http://localhost:5000/admin/maps
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxhbmRlcjEyMzQiLCJpYXQiOjE3NzU4MDA1ODksImV4cCI6MTc3NTg0Mzc4OX0.YeJTK6KX3MG68jvvpRQF01bjlHq09OWfk2Fm3cUYT5o
+
+{
+  "title": "Test Map",
+  "description": "A cool test map",
+  "price": 500,
+  "fileUrl": "maps/testfile.zip",
+  "thumbnail": "thumbnails/test.png",
+  "tags": ["adventure", "survival"],
+  "changelog": "Initial release",
+  "published": true
+}
+
+### Edit Map (Admin)
+PATCH http://localhost:5000/admin/maps/1
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxhbmRlcjEyMzQiLCJpYXQiOjE3NzU4MDA1ODksImV4cCI6MTc3NTg0Mzc4OX0.YeJTK6KX3MG68jvvpRQF01bjlHq09OWfk2Fm3cUYT5o
+
+{
+  "title": "Updated Map",
+  "description": "Updated description",
+  "price": 600,
+  "fileUrl": "maps/testfile.zip",
+  "thumbnail": "thumbnails/test.png",
+  "tags": ["adventure"],
+  "changelog": "Fixed some bugs",
+  "published": true
+}
+
+### Delete Map (Admin)
+DELETE http://localhost:5000/admin/maps/1
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxhbmRlcjEyMzQiLCJpYXQiOjE3NzU4MDA1ODksImV4cCI6MTc3NTg0Mzc4OX0.YeJTK6KX3MG68jvvpRQF01bjlHq09OWfk2Fm3cUYT5o
+
+### Upload Map File (Admin)
+POST http://localhost:5000/admin/upload?type=map
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxhbmRlcjEyMzQiLCJpYXQiOjE3NzU4MDA1ODksImV4cCI6MTc3NTg0Mzc4OX0.YeJTK6KX3MG68jvvpRQF01bjlHq09OWfk2Fm3cUYT5o
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="testmap.zip"
+Content-Type: application/zip
+
+< ./testmap.zip
+--boundary--
+
+### Upload Thumbnail (Admin)
+POST http://localhost:5000/admin/upload?type=thumbnail
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImxhbmRlcjEyMzQiLCJpYXQiOjE3NzU4MDA1ODksImV4cCI6MTc3NTg0Mzc4OX0.YeJTK6KX3MG68jvvpRQF01bjlHq09OWfk2Fm3cUYT5o
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="thumbnail.png"
+Content-Type: image/png
+
+< ./thumbnail.png
+--boundary--
+
+### Create Checkout Session
+POST http://localhost:5000/api/checkout
+Content-Type: application/json
+
+{
+  "mapId": 1
+}
+
+### Download Map (Free)
+GET http://localhost:5000/api/download/1
+
+### Download Map (Paid)
+GET http://localhost:5000/api/download/1?email=buyer@example.com

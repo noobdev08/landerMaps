@@ -52,22 +52,45 @@ export async function handleStripeWebhook(req, res) {
     let event;
 
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        event = stripe.webhooks.constructEvent(
+            req.body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET
+        );
     } catch (err) {
+        console.error('Stripe webhook signature verification failed:', err);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object;
 
-        await prisma.order.create({
-            data: {
-                mapId: Number(session.metadata.mapId),
-                stripeSessionId: session.id,
-                buyerEmail: session.customer_details.email,
-                amountPaid: session.amount_total
-            }
+        console.log('Stripe checkout session ID:', session.id);
+
+        const existingOrder = await prisma.order.findFirst({
+            where: { stripeSessionId: session.id }
         });
+
+        if (existingOrder) {
+            console.log('Order already exists, skipping...');
+            return res.json({ received: true });
+        }
+
+        try {
+            await prisma.order.create({
+                data: {
+                    mapId: Number(session.metadata.mapId),
+                    stripeSessionId: session.id,
+                    buyerEmail: session.customer_details.email,
+                    amountPaid: session.amount_total
+                }
+            });
+
+            console.log('Order created successfully');
+        } catch (err) {
+            console.error('Prisma error:', err);
+            return res.status(500).json({ message: 'DB error' });
+        }
     }
 
     res.json({ received: true });

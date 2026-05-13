@@ -30,7 +30,7 @@ model Map {
 model Order {
   id              Int      @id @default(autoincrement())
   mapId           Int
-  map             Map      @relation(fields: [mapId], references: [id])
+  map             Map      @relation(fields: [mapId], references: [id], onDelete: Cascade)
   stripeSessionId String   @unique
   buyerEmail      String
   amountPaid      Int

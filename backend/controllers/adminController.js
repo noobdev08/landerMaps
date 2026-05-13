@@ -11,28 +11,40 @@ export async function uploadFile(req, res) {
         const { type } = req.query;
 
         if (!type || !['map', 'thumbnail'].includes(type)) {
-            return res.status(400).json({ message: "Query param 'type' must be 'map' or 'thumbnail'" });
+            return res.status(400).json({ 
+                message: "Query param 'type' must be 'map' or 'thumbnail'" 
+            });
         }
 
         const file = req.file;
-        if (!file) return res.status(400).json({ message: "No file provided" });
+        if (!file) {
+            return res.status(400).json({ message: "No file provided" });
+        }
 
         const folder = type === 'map' ? 'maps' : 'thumbnails';
+
         const fileName = `${folder}/${Date.now()}_${file.originalname}`;
 
         const { error } = await supabase.storage
             .from('maps')
             .upload(fileName, file.buffer, {
-                contentType: file.mimetype
+                contentType: file.mimetype,
+                upsert: false
             });
 
         if (error) throw error;
 
-        res.status(200).json({ filePath: fileName });
+        const { data } = supabase.storage
+            .from('maps')
+            .getPublicUrl(fileName);
+
+        return res.status(200).json({
+            url: data.publicUrl   // 🔥 only return this
+        });
 
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Upload failed" });
+        return res.status(500).json({ message: "Upload failed" });
     }
 }
 

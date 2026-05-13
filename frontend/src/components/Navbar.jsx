@@ -28,7 +28,7 @@ export default function Navbar() {
             {/* Grass block icon */}
             {/* Profile Image */}
             <img
-              src="./maybe_profile.png"
+              src="/maybe_profile.png"
               alt="Profile"
               style={{
                 width: '40px',

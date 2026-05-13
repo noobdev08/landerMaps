@@ -16,11 +16,13 @@ model Map {
   id          Int      @id @default(autoincrement())
   title       String
   description String
-  price       Int
-  fileUrl     String   // Supabase Storage path
-  thumbnail   String   // Supabase Storage path
-  tags        String[]
-  changelog   String?  // optional update notes
+  price         Int
+  fileUrl       String   // Public URL for downloads and thumbnails
+  filePath      String   // Supabase storage path for signed URL generation
+  thumbnail     String   // Public URL for thumbnail display
+  thumbnailPath String   // Supabase storage path for thumbnail file
+  tags          String[]
+  changelog     String?  // optional update notes
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   orders      Order[]

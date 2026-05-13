@@ -8,13 +8,19 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_KEY
 );
 
-async function getSignedUrl(fileUrl) {
+async function getSignedUrl(filePath) {
     const { data, error } = await supabase.storage
         .from('maps')
-        .createSignedUrl(fileUrl, 86400);
+        .createSignedUrl(filePath, 86400);
 
     if (error) throw new Error('Could not generate download link');
     return data.signedUrl;
+}
+
+function extractStoragePath(url) {
+    if (!url) return null;
+    const match = url.match(/\/storage\/v1\/object\/(?:public|authenticated)\/(.+)$/);
+    return match ? match[1] : url;
 }
 
 export async function createCheckoutSession(req, res) {
@@ -105,8 +111,7 @@ export async function downloadMap(req, res) {
         if (!map) return res.status(404).json({ message: "Map not found" });
 
         if (map.price === 0) {
-            const signedUrl = await getSignedUrl(map.fileUrl);
-            return res.status(200).json({ downloadUrl: signedUrl });
+            return res.status(200).json({ downloadUrl: map.fileUrl });
         }
 
         if (!email) return res.status(400).json({ message: "Email is required" });
@@ -120,7 +125,10 @@ export async function downloadMap(req, res) {
 
         if (!order) return res.status(403).json({ message: "Please purchase this map first" });
 
-        const signedUrl = await getSignedUrl(map.fileUrl);
+        const storagePath = map.filePath || extractStoragePath(map.fileUrl);
+        if (!storagePath) throw new Error('Missing storage path for download link');
+
+        const signedUrl = await getSignedUrl(storagePath);
         res.status(200).json({ downloadUrl: signedUrl });
 
     } catch (err) {

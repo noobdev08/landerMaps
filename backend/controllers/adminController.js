@@ -11,8 +11,8 @@ export async function uploadFile(req, res) {
         const { type } = req.query;
 
         if (!type || !['map', 'thumbnail'].includes(type)) {
-            return res.status(400).json({ 
-                message: "Query param 'type' must be 'map' or 'thumbnail'" 
+            return res.status(400).json({
+                message: "Query param 'type' must be 'map' or 'thumbnail'"
             });
         }
 
@@ -39,7 +39,8 @@ export async function uploadFile(req, res) {
             .getPublicUrl(fileName);
 
         return res.status(200).json({
-            url: data.publicUrl   // 🔥 only return this
+            url: data.publicUrl,
+            path: fileName
         });
 
     } catch (err) {
@@ -50,9 +51,9 @@ export async function uploadFile(req, res) {
 
 export async function postMaps(req, res) {
     try {
-        const { title, description, price, fileUrl, thumbnail, tags, changelog, published } = req.body;
+        const { title, description, price, fileUrl, filePath, thumbnail, thumbnailPath, tags, changelog, published } = req.body;
 
-        if (!title || !description || price === undefined || !fileUrl || !thumbnail) {
+        if (!title || !description || price === undefined || !fileUrl || !filePath || !thumbnail || !thumbnailPath) {
             return res.status(400).json({ message: "Missing required fields" });
         }
 
@@ -62,7 +63,9 @@ export async function postMaps(req, res) {
                 description,
                 price,
                 fileUrl,
+                filePath,
                 thumbnail,
+                thumbnailPath,
                 tags: tags || [],
                 changelog: changelog || null,
                 published: published !== undefined ? published : true
@@ -92,7 +95,7 @@ export async function getMaps(req, res) {
 export async function editMap(req, res) {
     try {
         const { id } = req.params;
-        const { title, description, price, fileUrl, thumbnail, tags, changelog, published } = req.body;
+        const { title, description, price, fileUrl, filePath, thumbnail, thumbnailPath, tags, changelog, published } = req.body;
 
         if (!id) return res.status(400).json({ message: "Map ID is required" });
         if (price < 0) return res.status(400).json({ message: "Price cannot be negative" });
@@ -104,7 +107,9 @@ export async function editMap(req, res) {
                 description,
                 price,
                 fileUrl,
+                filePath,
                 thumbnail,
+                thumbnailPath,
                 tags: tags || [],
                 changelog: changelog || null,
                 published: published !== undefined ? published : undefined

@@ -6,7 +6,7 @@ import Navbar from '../components/Navbar.jsx';
 const emptyForm = {
     title: '', description: '', price: '',
     tags: '', changelog: '', published: true,
-    fileUrl: '', thumbnail: ''
+    fileUrl: '', filePath: '', thumbnail: '', thumbnailPath: ''
 };
 
 const Field = ({ label, name, form, setForm, type = 'text', placeholder }) => (
@@ -45,9 +45,13 @@ export default function AdminDashboard() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!localStorage.getItem('token')) navigate('/admin/login');
+        if (!localStorage.getItem('token')) {
+            navigate('/admin/login');
+            return;
+        }
+
         fetchMaps();
-    });
+    }, []);
 
     const fetchMaps = async () => {
         try {
@@ -68,7 +72,8 @@ export default function AdminDashboard() {
             const res = await uploadFile(formData, type);
             setForm(f => ({
                 ...f,
-                [type === 'map' ? 'fileUrl' : 'thumbnail']: res.data.filePath
+                [type === 'map' ? 'fileUrl' : 'thumbnail']: res.data.url,
+                [type === 'map' ? 'filePath' : 'thumbnailPath']: res.data.path
             }));
             setMessage(`${type} uploaded successfully`);
         } catch {
@@ -110,7 +115,9 @@ export default function AdminDashboard() {
             changelog: map.changelog || '',
             published: map.published,
             fileUrl: map.fileUrl,
-            thumbnail: map.thumbnail
+            filePath: map.filePath || '',
+            thumbnail: map.thumbnail,
+            thumbnailPath: map.thumbnailPath || ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323:wght@400&family=Silkscreen:wght@400;700&family=Share+Tech+Mono&display=swap');
 
 :root {
   --green: #5a8a2f;
@@ -20,7 +20,8 @@
   --card-bg: #1a1008;
   --text: #fffbe8;
   --pixel: 'Press Start 2P', monospace;
-  --vt: 'VT323', monospace;
+  --pixel-sm: 'Silkscreen', monospace;
+  --vt: 'Share Tech Mono', monospace;
   --star-color: rgba(255,255,255,0.8);
 }
 
@@ -30,7 +31,7 @@ body {
   background-color: var(--bg);
   color: var(--text);
   font-family: var(--vt);
-  font-size: 20px;
+  font-size: 18px;
   min-height: 100vh;
   background-image:
     radial-gradient(1px 1px at 10% 15%, var(--star-color) 0%, transparent 100%),
@@ -52,9 +53,9 @@ body {
 
 /* ── PIXEL BUTTONS ────────────────────────────────── */
 .pixel-btn {
-  font-family: var(--pixel);
-  font-size: 9px;
-  padding: 12px 18px;
+  font-family: var(--pixel-sm);
+  font-size: 11px;
+  padding: 10px 18px;
   border: none;
   cursor: pointer;
   position: relative;
@@ -149,7 +150,7 @@ body {
 /* ── INPUTS ───────────────────────────────────────── */
 .pixel-input {
   font-family: var(--vt);
-  font-size: 22px;
+  font-size: 20px;
   background: #0a0a0a;
   color: var(--cream);
   border: 3px solid var(--dark-stone);
@@ -204,8 +205,8 @@ body {
 
 /* ── TAGS ─────────────────────────────────────────── */
 .tag {
-  font-family: var(--pixel);
-  font-size: 7px;
+  font-family: var(--pixel-sm);
+  font-size: 9px;
   background: var(--dark-stone);
   color: var(--sand);
   padding: 4px 8px;
@@ -216,19 +217,19 @@ body {
 
 /* ── PRICE BADGE ──────────────────────────────────── */
 .price-badge {
-  font-family: var(--pixel);
-  font-size: 10px;
+  font-family: var(--pixel-sm);
+  font-size: 12px;
   color: var(--gold);
   text-shadow: 1px 1px 0 var(--dark-gold), 2px 2px 0 rgba(0,0,0,0.5);
-  background: rgba(0,0,0,0.6);
-  padding: 6px 10px;
+  background: rgba(0,0,0,0.75);
+  padding: 6px 12px;
   border: 2px solid var(--dark-gold);
 }
 
 /* ── SECTION HEADER ───────────────────────────────── */
 .section-header {
-  font-family: var(--pixel);
-  font-size: 12px;
+  font-family: var(--pixel-sm);
+  font-size: 14px;
   color: var(--sand);
   text-shadow: 2px 2px 0 rgba(0,0,0,0.7);
   padding-bottom: 12px;
@@ -251,8 +252,13 @@ body {
 }
 
 /* ── TYPOGRAPHY ───────────────────────────────────── */
-h1, h2, h3 { font-family: var(--pixel); }
+h1, h2, h3 { font-family: var(--pixel-sm); }
+h1 { font-size: 18px; }
+h2 { font-size: 15px; }
+h3 { font-size: 13px; }
 a { color: var(--cream); text-decoration: none; }
+
+p { font-family: var(--vt); font-size: 18px; line-height: 1.7; }
 
 /* ── SCROLLBAR ────────────────────────────────────── */
 ::-webkit-scrollbar { width: 10px; }
@@ -279,8 +285,8 @@ a { color: var(--cream); text-decoration: none; }
 
 /* ── NOTIFICATION ─────────────────────────────────── */
 .notif-success {
-  font-family: var(--pixel);
-  font-size: 8px;
+  font-family: var(--pixel-sm);
+  font-size: 10px;
   background: var(--dark-green);
   color: var(--bright-green);
   border: 2px solid var(--green);
@@ -289,8 +295,8 @@ a { color: var(--cream); text-decoration: none; }
 }
 
 .notif-error {
-  font-family: var(--pixel);
-  font-size: 8px;
+  font-family: var(--pixel-sm);
+  font-size: 10px;
   background: #2a0a08;
   color: #ff6b6b;
   border: 2px solid var(--red);

@@ -10,71 +10,131 @@ export default function Navbar() {
   };
 
   return (
-    <nav>
+    <nav style={{ position: 'sticky', top: 0, zIndex: 100 }}>
       <div style={{
-        background: 'linear-gradient(180deg, #1a0d00 0%, #120900 100%)',
+        background: 'linear-gradient(180deg, #1c0e02 0%, #110800 100%)',
         borderBottom: '3px solid var(--mid-brown)',
-        boxShadow: '0 4px 0 rgba(0,0,0,0.8)'
+        boxShadow: '0 4px 0 rgba(0,0,0,0.9)',
+        backdropFilter: 'blur(4px)',
       }}>
         <div style={{
           maxWidth: '1200px',
           margin: '0 auto',
-          padding: '14px 28px',
+          padding: '12px 28px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
         }}>
-          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {/* Grass block icon */}
-            {/* Profile Image */}
-            <img
-              src="/maybe_profile.png"
-              alt="Profile"
-              style={{
-                width: '40px',
-                height: '38px',
-                imageRendering: 'pixelated',
-                border: '3px solid rgba(0,0,0,0.6)',
-                boxShadow: 'inset 1px 1px 0 rgba(255,255,255,0.15)'
-              }}
-            />
+          {/* Logo */}
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '14px', textDecoration: 'none' }}>
+            <div style={{ position: 'relative' }}>
+              <img
+                src="/maybe_profile.png"
+                alt="MB"
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  imageRendering: 'pixelated',
+                  border: '2px solid var(--mid-brown)',
+                  boxShadow: '3px 3px 0 rgba(0,0,0,0.6), inset 1px 1px 0 rgba(255,255,255,0.1)',
+                  display: 'block',
+                }}
+              />
+            </div>
             <div>
               <div style={{
                 fontFamily: 'var(--pixel)',
                 fontSize: '13px',
                 color: 'var(--cream)',
-                textShadow: '2px 2px 0 rgba(0,0,0,0.8)',
+                textShadow: '2px 2px 0 rgba(0,0,0,0.9)',
+                letterSpacing: '1px',
                 animation: 'flicker 8s infinite',
               }}>
                 Map_Buildz
               </div>
               <div style={{
                 fontFamily: 'var(--vt)',
-                fontSize: '16px',
-                color: 'var(--stone)',
-                marginTop: '2px'
+                fontSize: '14px',
+                color: '#7a6a55',
+                marginTop: '1px',
+                letterSpacing: '0.5px',
               }}>
                 Great Minecraft Maps
               </div>
             </div>
           </Link>
 
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <Link to="/"><button className="pixel-btn pixel-btn-brown">Store</button></Link>
+          {/* Nav buttons */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <Link to="/">
+              <NavBtn variant="brown">Store</NavBtn>
+            </Link>
             {isAdmin ? (
               <>
-                <Link to="/admin"><button className="pixel-btn pixel-btn-green">Dashboard</button></Link>
-                <button className="pixel-btn pixel-btn-red" onClick={logout}>Logout</button>
+                <Link to="/admin">
+                  <NavBtn variant="green">Dashboard</NavBtn>
+                </Link>
+                <NavBtn variant="red" onClick={logout}>Logout</NavBtn>
               </>
             ) : (
-              <Link to="/admin/login"><button className="pixel-btn pixel-btn-brown">Admin</button></Link>
+              <Link to="/admin/login">
+                <NavBtn variant="brown">Admin</NavBtn>
+              </Link>
             )}
           </div>
         </div>
       </div>
-      <div className="grass-bar" />
-      <div className="dirt-bar" />
-      <div className="stone-bar" />
+
+      {/* Minecraft grass/dirt bar */}
+      <div style={{ display: 'flex', height: '10px', overflow: 'hidden' }}>
+        {Array.from({ length: 40 }).map((_, i) => (
+          <div key={i} style={{
+            flex: 1,
+            background: i % 4 === 0 ? '#5a8a2f' : i % 4 === 1 ? '#4a7a1f' : i % 4 === 2 ? '#6aaa30' : '#3d6618',
+          }} />
+        ))}
+      </div>
     </nav>
+  );
+}
+
+function NavBtn({ variant = 'brown', children, onClick }) {
+  const colors = {
+    brown: { bg: '#3d2007', border: '#6b3a10', hover: '#4e2a0a', text: '#d4b483' },
+    green: { bg: '#1a4a0f', border: '#2d7a1a', hover: '#245e14', text: '#6aaa30' },
+    red:   { bg: '#4a0f0f', border: '#7a1f1f', hover: '#5e1414', text: '#e05050' },
+  };
+  const c = colors[variant];
+
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        fontFamily: 'var(--pixel)',
+        fontSize: '8px',
+        color: c.text,
+        background: c.bg,
+        border: `2px solid ${c.border}`,
+        padding: '8px 16px',
+        cursor: 'pointer',
+        letterSpacing: '1px',
+        boxShadow: `2px 2px 0 rgba(0,0,0,0.6)`,
+        transition: 'all 0.08s',
+        textTransform: 'uppercase',
+        position: 'relative',
+      }}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = c.hover;
+        e.currentTarget.style.transform = 'translateY(-1px)';
+        e.currentTarget.style.boxShadow = `2px 3px 0 rgba(0,0,0,0.7)`;
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = c.bg;
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = `2px 2px 0 rgba(0,0,0,0.6)`;
+      }}
+    >
+      {children}
+    </button>
   );
 }

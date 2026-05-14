@@ -46,152 +46,279 @@ export default function MapDetail() {
   };
 
   if (loading) return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', background: '#0d0d0d' }}>
       <Navbar />
       <div style={{ padding: '80px', textAlign: 'center' }}>
-        <p style={{ fontFamily: 'var(--pixel)', fontSize: '10px', color: 'var(--stone)' }}>Loading world...</p>
+        <p style={{ fontFamily: 'var(--pixel)', fontSize: '10px', color: '#7a6a55', animation: 'flicker 2s infinite' }}>
+          Loading world...
+        </p>
       </div>
     </div>
   );
 
   if (!map) return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', background: '#0d0d0d' }}>
       <Navbar />
       <div style={{ padding: '80px', textAlign: 'center' }}>
-        <p style={{ fontFamily: 'var(--pixel)', fontSize: '10px', color: 'var(--red)' }}>Map not found.</p>
-        <Link to="/"><button className="pixel-btn pixel-btn-brown" style={{ marginTop: '24px' }}>← Back</button></Link>
+        <p style={{ fontFamily: 'var(--pixel)', fontSize: '10px', color: '#e05050', marginBottom: '24px' }}>
+          Map not found.
+        </p>
+        <Link to="/"><PixelBtn variant="brown">← Back</PixelBtn></Link>
       </div>
     </div>
   );
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', background: '#0d0d0d' }}>
       <Navbar />
-      <div style={{ maxWidth: '860px', margin: '0 auto', padding: '48px 28px' }}>
+      <div style={{ maxWidth: '920px', margin: '0 auto', padding: '48px 28px 80px' }}>
 
-        <Link to="/" style={{ display: 'inline-block', marginBottom: '24px' }}>
-          <button className="pixel-btn pixel-btn-brown" style={{ fontSize: '8px' }}>← Back to Store</button>
+        <Link to="/" style={{ display: 'inline-block', marginBottom: '28px', textDecoration: 'none' }}>
+          <PixelBtn variant="brown">← Back to Store</PixelBtn>
         </Link>
 
-        {/* Thumbnail */}
+        {/* Hero thumbnail */}
         <div style={{
-          width: '100%', height: '320px',
+          width: '100%',
+          height: '340px',
           background: '#080808',
-          border: '3px solid var(--mid-brown)',
-          boxShadow: '6px 6px 0 rgba(0,0,0,0.7)',
-          marginBottom: '28px',
-          overflow: 'hidden'
+          border: '2px solid #2a1500',
+          boxShadow: '6px 6px 0 rgba(0,0,0,0.8)',
+          marginBottom: '32px',
+          overflow: 'hidden',
+          position: 'relative',
         }}>
           {map.thumbnail ? (
-            <img src={map.thumbnail} alt={map.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', imageRendering: 'pixelated', display: 'block' }} />
+            <img
+              src={map.thumbnail}
+              alt={map.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', imageRendering: 'pixelated', display: 'block' }}
+            />
           ) : (
             <div style={{
-              width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'repeating-linear-gradient(45deg, #0d0d0d 0px, #0d0d0d 8px, #111 8px, #111 16px)'
+              width: '100%', height: '100%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: 'repeating-linear-gradient(45deg, #0d0d0d 0px, #0d0d0d 8px, #111 8px, #111 16px)',
             }}>
-              <span style={{ fontFamily: 'var(--pixel)', fontSize: '10px', color: 'var(--dark-stone)' }}>No Preview</span>
+              <span style={{ fontFamily: 'var(--pixel)', fontSize: '10px', color: '#2a2a2a' }}>No Preview</span>
             </div>
           )}
+          {/* gradient overlay at bottom */}
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0, height: '80px',
+            background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
+            pointerEvents: 'none',
+          }} />
         </div>
 
+        {/* Content grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '24px', alignItems: 'start' }}>
 
-          {/* Left — details */}
+          {/* ── Left: details ── */}
           <div>
-            <div className="pixel-card" style={{ marginBottom: '20px' }}>
+            {/* Main info card */}
+            <div style={{
+              background: '#110900',
+              border: '2px solid #2a1500',
+              boxShadow: '4px 4px 0 rgba(0,0,0,0.7)',
+              padding: '24px',
+              marginBottom: '20px',
+            }}>
               <h1 style={{
-                fontSize: '13px', color: 'var(--cream)',
-                marginBottom: '16px', lineHeight: 2,
-                textShadow: '2px 2px 0 rgba(0,0,0,0.6)'
-              }}>{map.title}</h1>
+                fontFamily: 'var(--pixel)',
+                fontSize: '13px',
+                color: '#f0d0a0',
+                marginBottom: '18px',
+                lineHeight: 2,
+                textShadow: '2px 2px 0 rgba(0,0,0,0.7)',
+                letterSpacing: '1px',
+              }}>
+                {map.title}
+              </h1>
 
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '20px' }}>
-                {map.tags?.map(tag => <span className="tag" key={tag}>{tag}</span>)}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '22px' }}>
+                {map.tags?.map(tag => (
+                  <span key={tag} style={{
+                    fontFamily: 'var(--pixel)', fontSize: '7px',
+                    color: '#7a6a55', background: '#1a0e00',
+                    border: '1px solid #2a1a08', padding: '4px 10px',
+                    letterSpacing: '0.5px',
+                  }}>
+                    {tag}
+                  </span>
+                ))}
               </div>
 
-              <hr className="pixel-divider" />
+              <div style={{ height: '1px', background: 'linear-gradient(90deg, #3d2007, transparent)', marginBottom: '22px' }} />
 
-              <p style={{ color: 'var(--sand)', lineHeight: 1.7, fontSize: '22px' }}>
+              <p style={{
+                color: '#b8955a',
+                lineHeight: 1.8,
+                fontSize: '18px',
+                fontFamily: 'var(--vt)',
+              }}>
                 {map.description}
               </p>
             </div>
 
+            {/* Changelog */}
             {map.changelog && (
-              <div className="pixel-card">
-                <p style={{
-                  fontFamily: 'var(--pixel)', fontSize: '8px',
-                  color: 'var(--stone)', marginBottom: '12px',
-                  display: 'flex', alignItems: 'center', gap: '8px'
+              <div style={{
+                background: '#110900',
+                border: '2px solid #2a1500',
+                boxShadow: '4px 4px 0 rgba(0,0,0,0.7)',
+                padding: '20px 24px',
+              }}>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px',
                 }}>
-                  <span style={{ display: 'inline-block', width: '8px', height: '8px', background: 'var(--bright-green)' }} />
-                  Changelog
+                  <div style={{ width: '8px', height: '8px', background: '#6aaa30', boxShadow: '0 0 6px #6aaa30' }} />
+                  <span style={{ fontFamily: 'var(--pixel)', fontSize: '8px', color: '#7a6a55', letterSpacing: '1px' }}>
+                    Changelog
+                  </span>
+                </div>
+                <p style={{ color: '#b8955a', lineHeight: 1.7, fontSize: '17px', fontFamily: 'var(--vt)' }}>
+                  {map.changelog}
                 </p>
-                <p style={{ color: 'var(--sand)', lineHeight: 1.6, fontSize: '20px' }}>{map.changelog}</p>
               </div>
             )}
           </div>
 
-          {/* Right — buy panel */}
-          <div className="pixel-card" style={{ position: 'sticky', top: '24px' }}>
+          {/* ── Right: buy panel ── */}
+          <div style={{
+            background: '#110900',
+            border: '2px solid #2a1500',
+            boxShadow: '4px 4px 0 rgba(0,0,0,0.7)',
+            padding: '24px',
+            position: 'sticky',
+            top: '80px',
+          }}>
+            {/* Price */}
             <div style={{
               textAlign: 'center',
-              padding: '16px 0',
+              padding: '18px 0',
               marginBottom: '20px',
-              borderBottom: '3px solid var(--mid-brown)'
+              borderBottom: '2px solid #2a1500',
             }}>
-              <span className="price-badge" style={{ fontSize: '16px', padding: '10px 20px' }}>
+              <span style={{
+                fontFamily: 'var(--pixel)',
+                fontSize: map.price === 0 ? '18px' : '22px',
+                color: map.price === 0 ? '#6aaa30' : '#f0c040',
+                textShadow: map.price === 0 ? '2px 2px 0 #1a4a0f' : '2px 2px 0 #4a3000',
+                letterSpacing: '2px',
+              }}>
                 {map.price === 0 ? 'FREE' : `€${(map.price / 100).toFixed(2)}`}
               </span>
             </div>
 
             {map.price === 0 ? (
-              <button className="pixel-btn pixel-btn-green" style={{ width: '100%', padding: '16px' }}
-                onClick={handleDownload} disabled={downloading}>
+              <PixelBtn variant="green" fullWidth onClick={handleDownload} disabled={downloading}>
                 {downloading ? 'Getting link...' : '⬇ Download Free'}
-              </button>
+              </PixelBtn>
             ) : (
               <>
-                <button className="pixel-btn pixel-btn-gold" style={{ width: '100%', padding: '16px', marginBottom: '20px' }}
-                  onClick={handleBuy}>
+                <PixelBtn variant="gold" fullWidth onClick={handleBuy}>
                   Buy Now →
-                </button>
+                </PixelBtn>
 
-                <div style={{
-                  borderTop: '3px solid var(--dark-brown)',
-                  paddingTop: '16px'
-                }}>
+                <div style={{ borderTop: '2px solid #1a0d00', paddingTop: '20px', marginTop: '20px' }}>
                   <p style={{
                     fontFamily: 'var(--pixel)', fontSize: '7px',
-                    color: 'var(--stone)', marginBottom: '10px'
+                    color: '#7a6a55', marginBottom: '12px', letterSpacing: '1px',
                   }}>
                     Already purchased?
                   </p>
                   <input
-                    className="pixel-input"
                     type="email"
                     placeholder="your@email.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    style={{ marginBottom: '10px' }}
+                    style={{
+                      width: '100%',
+                      background: '#0a0600',
+                      border: '2px solid #2a1500',
+                      color: '#d4b483',
+                      fontFamily: 'var(--vt)',
+                      fontSize: '16px',
+                      padding: '10px 12px',
+                      boxSizing: 'border-box',
+                      marginBottom: '10px',
+                      outline: 'none',
+                    }}
+                    onFocus={e => e.target.style.borderColor = '#6b3a10'}
+                    onBlur={e => e.target.style.borderColor = '#2a1500'}
                   />
-                  <button className="pixel-btn pixel-btn-brown" style={{ width: '100%' }}
-                    onClick={handleDownload} disabled={downloading}>
+                  <PixelBtn variant="brown" fullWidth onClick={handleDownload} disabled={downloading}>
                     {downloading ? 'Checking...' : '⬇ Get Download'}
-                  </button>
+                  </PixelBtn>
                 </div>
               </>
             )}
 
             {message && (
-              <div className={isError ? 'notif-error' : 'notif-success'} style={{ marginTop: '14px' }}>
+              <div style={{
+                marginTop: '14px',
+                padding: '10px 12px',
+                fontFamily: 'var(--pixel)',
+                fontSize: '7px',
+                letterSpacing: '0.5px',
+                background: isError ? 'rgba(74,15,15,0.5)' : 'rgba(26,74,15,0.5)',
+                border: `2px solid ${isError ? '#7a1f1f' : '#2d5a10'}`,
+                color: isError ? '#e05050' : '#6aaa30',
+              }}>
                 {message}
               </div>
             )}
           </div>
         </div>
       </div>
-      <div className="dirt-bar" style={{ marginTop: '60px' }} />
+
+      <div style={{ display: 'flex', height: '10px' }}>
+        {Array.from({ length: 40 }).map((_, i) => (
+          <div key={i} style={{
+            flex: 1,
+            background: i % 3 === 0 ? '#5c3318' : i % 3 === 1 ? '#4a2810' : '#3d2007',
+          }} />
+        ))}
+      </div>
     </div>
+  );
+}
+
+function PixelBtn({ variant = 'brown', children, onClick, disabled, fullWidth }) {
+  const [hovered, setHovered] = useState(false);
+  const variants = {
+    brown: { bg: '#3d2007', hover: '#4e2a0a', border: '#6b3a10', color: '#d4b483' },
+    green: { bg: '#1a4a0f', hover: '#245e14', border: '#2d7a1a', color: '#6aaa30' },
+    gold:  { bg: '#3a2800', hover: '#4e3500', border: '#8a6010', color: '#f0c040' },
+    red:   { bg: '#4a0f0f', hover: '#5e1414', border: '#7a1f1f', color: '#e05050' },
+  };
+  const c = variants[variant];
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        fontFamily: 'var(--pixel)',
+        fontSize: '8px',
+        color: disabled ? '#555' : c.color,
+        background: disabled ? '#1a1a1a' : (hovered ? c.hover : c.bg),
+        border: `2px solid ${disabled ? '#333' : c.border}`,
+        padding: '12px 18px',
+        width: fullWidth ? '100%' : 'auto',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        letterSpacing: '1px',
+        boxShadow: hovered && !disabled ? `2px 3px 0 rgba(0,0,0,0.7)` : `2px 2px 0 rgba(0,0,0,0.6)`,
+        transform: hovered && !disabled ? 'translateY(-1px)' : 'none',
+        transition: 'all 0.08s',
+        display: 'block',
+        textAlign: 'center',
+      }}
+    >
+      {children}
+    </button>
   );
 }

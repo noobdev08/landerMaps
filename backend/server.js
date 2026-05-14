@@ -16,7 +16,10 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), handleStripe
 // Middlware
 app.use(express.json());
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'https://lander-maps.vercel.app'
+  ]
 }));
 
 // Routes
@@ -26,5 +29,5 @@ app.use('/admin', authMiddleware, adminRoute)
 app.use('/api', paymentRoute);
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port: ${PORT}`)
+  console.log(`Server is running on port: ${PORT}`)
 })

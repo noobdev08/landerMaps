@@ -152,3 +152,5 @@ function LoginBtn({ onClick, disabled, children }) {
     </button>
   );
 }
+
+export default AdminLogin;

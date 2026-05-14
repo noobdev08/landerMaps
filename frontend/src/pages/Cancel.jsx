@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export function Cancel() {
+export default function Cancel() {
   return (
     <div style={{ minHeight: '100vh', background: '#0d0d0d' }}>
       <Navbar />

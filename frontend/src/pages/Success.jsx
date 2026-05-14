@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
- 
-export function Success() {
+
+export default function Success() {
   return (
     <div style={{ minHeight: '100vh', background: '#0d0d0d' }}>
       <Navbar />
@@ -25,7 +25,7 @@ export function Success() {
           }}>
             ✓
           </div>
- 
+
           <h1 style={{
             fontFamily: 'var(--pixel)',
             fontSize: '13px', color: '#6aaa30',
@@ -35,16 +35,36 @@ export function Success() {
           }}>
             Payment Successful!
           </h1>
- 
+
           <p style={{
             color: '#b8955a', marginBottom: '36px',
             lineHeight: 1.8, fontSize: '18px', fontFamily: 'var(--vt)',
           }}>
             Your purchase is confirmed. Head back to the map page and enter your email to get your download.
           </p>
- 
-          <Link to="/">
-            <StyledBtn>← Back to Store</StyledBtn>
+
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <button
+              style={{
+                background: '#2a1500',
+                border: '3px solid #4a2a00',
+                color: '#f5d28d',
+                padding: '14px 24px',
+                fontFamily: 'var(--pixel)',
+                fontSize: '11px',
+                cursor: 'pointer',
+                boxShadow: '4px 4px 0 rgba(0,0,0,0.6)',
+                transition: '0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-2px)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+              }}
+            >
+              ← Back to Store
+            </button>
           </Link>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE = 'http://localhost:5000';
+const BASE = 'https://landermaps.onrender.com';
 
 const getToken = () => localStorage.getItem('token');
 

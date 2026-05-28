@@ -6,7 +6,7 @@ import Navbar from '../components/Navbar.jsx';
 const emptyForm = {
   title: '', description: '', price: '',
   tags: '', changelog: '', published: true,
-  fileUrl: '', filePath: '', thumbnail: '', thumbnailPath: ''
+  fileUrl: '', filePath: '', thumbnail: '', thumbnailPath: '', discount: ''
 };
 
 export default function AdminDashboard() {
@@ -50,6 +50,7 @@ export default function AdminDashboard() {
       const data = {
         ...form,
         price: Number(form.price),
+        discount: form.discount ? Number(form.discount) : null,
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean)
       };
       if (editingId) { await updateMap(editingId, data); setMessage('Map updated!'); }
@@ -64,7 +65,7 @@ export default function AdminDashboard() {
       title: map.title, description: map.description, price: map.price,
       tags: map.tags?.join(', ') || '', changelog: map.changelog || '',
       published: map.published, fileUrl: map.fileUrl, filePath: map.filePath || '',
-      thumbnail: map.thumbnail, thumbnailPath: map.thumbnailPath || ''
+      thumbnail: map.thumbnail, thumbnailPath: map.thumbnailPath || '', discount: map.discount || ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -110,6 +111,27 @@ export default function AdminDashboard() {
               {form.price !== '' && (
                 <span style={{ fontFamily: 'var(--pixel)', fontSize: '8px', color: '#f0c040', whiteSpace: 'nowrap' }}>
                   = €{(Number(form.price) / 100).toFixed(2)}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Discount percentage */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={labelStyle}>Discount (% off, optional)</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input
+                type="number"
+                placeholder="0"
+                value={form.discount}
+                onChange={e => setForm({ ...form, discount: e.target.value })}
+                style={inputStyle}
+                min="0"
+                max="100"
+              />
+              {form.discount && form.price && (
+                <span style={{ fontFamily: 'var(--pixel)', fontSize: '8px', color: '#6aaa30', whiteSpace: 'nowrap' }}>
+                  → €{((Number(form.price) * (100 - Number(form.discount))) / 10000).toFixed(2)}
                 </span>
               )}
             </div>
@@ -238,7 +260,16 @@ function MapRow({ map, onEdit, onDelete }) {
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontFamily: 'var(--pixel)', fontSize: '7px', color: '#b8955a' }}>
-            €{(map.price / 100).toFixed(2)}
+            {map.discount ? (
+              <>
+                <span style={{ textDecoration: 'line-through' }}>€{(map.price / 100).toFixed(2)}</span>
+                {' → '}
+                <span style={{ color: '#6aaa30' }}>€{((map.price * (100 - map.discount)) / 10000).toFixed(2)}</span>
+                <span style={{ color: '#6aaa30', marginLeft: '6px' }}>(-{map.discount}%)</span>
+              </>
+            ) : (
+              `€${(map.price / 100).toFixed(2)}`
+            )}
           </span>
           <span style={{ color: '#2a1a08' }}>•</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>

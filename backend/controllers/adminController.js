@@ -51,10 +51,14 @@ export async function uploadFile(req, res) {
 
 export async function postMaps(req, res) {
     try {
-        const { title, description, price, fileUrl, filePath, thumbnail, thumbnailPath, tags, changelog, published } = req.body;
+        const { title, description, price, fileUrl, filePath, thumbnail, thumbnailPath, tags, changelog, published, discount } = req.body;
 
         if (!title || !description || price === undefined || !fileUrl || !filePath || !thumbnail || !thumbnailPath) {
             return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        if (discount !== undefined && (discount < 0 || discount > 100)) {
+            return res.status(400).json({ message: "Discount must be between 0 and 100" });
         }
 
         const newMap = await prisma.map.create({
@@ -62,6 +66,7 @@ export async function postMaps(req, res) {
                 title,
                 description,
                 price,
+                discount: discount || null,
                 fileUrl,
                 filePath,
                 thumbnail,
@@ -95,10 +100,13 @@ export async function getMaps(req, res) {
 export async function editMap(req, res) {
     try {
         const { id } = req.params;
-        const { title, description, price, fileUrl, filePath, thumbnail, thumbnailPath, tags, changelog, published } = req.body;
+        const { title, description, price, fileUrl, filePath, thumbnail, thumbnailPath, tags, changelog, published, discount } = req.body;
 
         if (!id) return res.status(400).json({ message: "Map ID is required" });
         if (price < 0) return res.status(400).json({ message: "Price cannot be negative" });
+        if (discount !== undefined && (discount < 0 || discount > 100)) {
+            return res.status(400).json({ message: "Discount must be between 0 and 100" });
+        }
 
         const updatedMap = await prisma.map.update({
             where: { id: Number(id) },
@@ -106,6 +114,7 @@ export async function editMap(req, res) {
                 title,
                 description,
                 price,
+                discount: discount || null,
                 fileUrl,
                 filePath,
                 thumbnail,

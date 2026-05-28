@@ -219,18 +219,59 @@ function MapCard({ map, delay }) {
 
           {/* Price badge */}
           <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
-            <span style={{
-              fontFamily: 'var(--pixel)',
-              fontSize: '9px',
-              color: map.price === 0 ? '#6aaa30' : '#f0c040',
-              background: map.price === 0 ? 'rgba(10,30,5,0.95)' : 'rgba(20,15,0,0.95)',
-              border: `2px solid ${map.price === 0 ? '#2d5a10' : '#8a6010'}`,
-              padding: '4px 10px',
-              boxShadow: '2px 2px 0 rgba(0,0,0,0.6)',
-              letterSpacing: '1px',
-            }}>
-              {map.price === 0 ? 'FREE' : `€${(map.price / 100).toFixed(2)}`}
-            </span>
+            {map.discount ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
+                <span style={{
+                  fontFamily: 'var(--pixel)',
+                  fontSize: '10px',
+                  color: '#e05050',
+                  background: 'rgba(74,15,15,0.95)',
+                  border: '2px solid #7a1f1f',
+                  padding: '4px 8px',
+                  boxShadow: '2px 2px 0 rgba(0,0,0,0.6)',
+                  letterSpacing: '1px',
+                  fontWeight: 'bold',
+                }}>
+                  -{map.discount}%
+                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'flex-end' }}>
+                  <span style={{
+                    fontFamily: 'var(--pixel)',
+                    fontSize: '7px',
+                    color: '#7a6a55',
+                    textDecoration: 'line-through',
+                    letterSpacing: '0.5px',
+                  }}>
+                    €{(map.price / 100).toFixed(2)}
+                  </span>
+                  <span style={{
+                    fontFamily: 'var(--pixel)',
+                    fontSize: '9px',
+                    color: '#6aaa30',
+                    background: 'rgba(10,30,5,0.95)',
+                    border: '2px solid #2d5a10',
+                    padding: '4px 10px',
+                    boxShadow: '2px 2px 0 rgba(0,0,0,0.6)',
+                    letterSpacing: '1px',
+                  }}>
+                    €{((map.price * (100 - map.discount)) / 10000).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <span style={{
+                fontFamily: 'var(--pixel)',
+                fontSize: '9px',
+                color: map.price === 0 ? '#6aaa30' : '#f0c040',
+                background: map.price === 0 ? 'rgba(10,30,5,0.95)' : 'rgba(20,15,0,0.95)',
+                border: `2px solid ${map.price === 0 ? '#2d5a10' : '#8a6010'}`,
+                padding: '4px 10px',
+                boxShadow: '2px 2px 0 rgba(0,0,0,0.6)',
+                letterSpacing: '1px',
+              }}>
+                {map.price === 0 ? 'FREE' : `€${(map.price / 100).toFixed(2)}`}
+              </span>
+            )}
           </div>
 
           {/* Hover overlay */}

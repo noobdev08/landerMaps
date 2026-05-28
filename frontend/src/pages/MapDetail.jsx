@@ -206,15 +206,52 @@ export default function MapDetail() {
               marginBottom: '20px',
               borderBottom: '2px solid #2a1500',
             }}>
-              <span style={{
-                fontFamily: 'var(--pixel)',
-                fontSize: map.price === 0 ? '18px' : '22px',
-                color: map.price === 0 ? '#6aaa30' : '#f0c040',
-                textShadow: map.price === 0 ? '2px 2px 0 #1a4a0f' : '2px 2px 0 #4a3000',
-                letterSpacing: '2px',
-              }}>
-                {map.price === 0 ? 'FREE' : `€${(map.price / 100).toFixed(2)}`}
-              </span>
+              {map.discount ? (
+                <div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <span style={{
+                      fontFamily: 'var(--pixel)',
+                      fontSize: '12px',
+                      color: '#e05050',
+                      textShadow: '2px 2px 0 #3d0000',
+                      letterSpacing: '1px',
+                      fontWeight: 'bold',
+                    }}>
+                      -{map.discount}% OFF
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                    <span style={{
+                      fontFamily: 'var(--pixel)',
+                      fontSize: '16px',
+                      color: '#7a6a55',
+                      textDecoration: 'line-through',
+                      letterSpacing: '1px',
+                    }}>
+                      €{(map.price / 100).toFixed(2)}
+                    </span>
+                    <span style={{
+                      fontFamily: 'var(--pixel)',
+                      fontSize: '24px',
+                      color: '#6aaa30',
+                      textShadow: '2px 2px 0 #1a4a0f',
+                      letterSpacing: '2px',
+                    }}>
+                      €{((map.price * (100 - map.discount)) / 10000).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <span style={{
+                  fontFamily: 'var(--pixel)',
+                  fontSize: map.price === 0 ? '18px' : '22px',
+                  color: map.price === 0 ? '#6aaa30' : '#f0c040',
+                  textShadow: map.price === 0 ? '2px 2px 0 #1a4a0f' : '2px 2px 0 #4a3000',
+                  letterSpacing: '2px',
+                }}>
+                  {map.price === 0 ? 'FREE' : `€${(map.price / 100).toFixed(2)}`}
+                </span>
+              )}
             </div>
 
             {map.price === 0 ? (

@@ -17,6 +17,7 @@ model Map {
   title       String
   description String
   price         Int
+  discount      Int?     // discount percentage (0-100), optional
   fileUrl       String   // Public URL for downloads and thumbnails
   filePath      String   // Supabase storage path for signed URL generation
   thumbnail     String   // Public URL for thumbnail display

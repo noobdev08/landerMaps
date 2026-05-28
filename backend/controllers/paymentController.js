@@ -30,13 +30,17 @@ export async function createCheckoutSession(req, res) {
         const map = await prisma.map.findUnique({ where: { id: Number(mapId) } });
         if (!map) return res.status(404).json({ message: "Map not found" });
 
+        const finalPrice = map.discount
+            ? Math.round(map.price * (100 - map.discount) / 100)
+            : map.price;
+
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],
             line_items: [{
                 price_data: {
                     currency: 'eur',
                     product_data: { name: map.title },
-                    unit_amount: map.price
+                    unit_amount: finalPrice
                 },
                 quantity: 1
             }],

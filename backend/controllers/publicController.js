@@ -10,6 +10,7 @@ export async function getMapList(req, res) {
                 title: true,
                 thumbnail: true,
                 price: true,
+                discount: true,
                 tags: true
             }
         });
@@ -32,6 +33,7 @@ export async function getMapDetail(req, res) {
                 description: true,
                 thumbnail: true,
                 price: true,
+                discount: true,
                 tags: true,
                 changelog: true
             }

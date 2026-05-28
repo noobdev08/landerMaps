@@ -11,6 +11,8 @@ export default function MapDetail() {
   const [downloading, setDownloading] = useState(false);
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     getMapById(id)
@@ -20,6 +22,10 @@ export default function MapDetail() {
   }, [id]);
 
   const handleBuy = async () => {
+    if (!termsAccepted) {
+      setShowTerms(true);
+      return;
+    }
     try {
       const res = await createCheckout(Number(id));
       window.location.href = res.data.url;
@@ -272,6 +278,111 @@ export default function MapDetail() {
           </div>
         </div>
       </div>
+
+      {showTerms && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#110900',
+            border: '2px solid #2a1500',
+            boxShadow: '6px 6px 0 rgba(0,0,0,0.8)',
+            padding: '32px 28px',
+            maxWidth: '520px',
+            maxHeight: '80vh',
+            overflow: 'auto',
+          }}>
+            <h2 style={{
+              fontFamily: 'var(--pixel)',
+              fontSize: '12px',
+              color: '#f0d0a0',
+              marginBottom: '16px',
+              letterSpacing: '1px',
+            }}>
+              PURCHASE TERMS
+            </h2>
+
+            <div style={{
+              background: '#0a0600',
+              border: '1px solid #2a1500',
+              padding: '16px',
+              marginBottom: '20px',
+              fontSize: '14px',
+              lineHeight: '1.7',
+              fontFamily: 'var(--vt)',
+              color: '#b8955a',
+              maxHeight: '300px',
+              overflowY: 'auto',
+            }}>
+              <p style={{ margin: '0 0 12px' }}>
+                I accept the terms of policy when buying this map: I do not share the map with others and only buy it for personal use. I don't use it in any way for making profit or sharing without making profit.
+              </p>
+              <p style={{ margin: '0' }}>
+                You are allowed to make copies of the file for yourself. This way you can replay the map in its saved state or original state.
+              </p>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              marginBottom: '20px',
+            }}>
+              <input
+                type="checkbox"
+                id="terms-checkbox"
+                checked={termsAccepted}
+                onChange={e => setTermsAccepted(e.target.checked)}
+                style={{
+                  cursor: 'pointer',
+                  width: '18px',
+                  height: '18px',
+                }}
+              />
+              <label
+                htmlFor="terms-checkbox"
+                style={{
+                  fontFamily: 'var(--pixel)',
+                  fontSize: '9px',
+                  color: '#d4b483',
+                  cursor: 'pointer',
+                  letterSpacing: '0.5px',
+                }}
+              >
+                I accept the terms above
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <PixelBtn
+                variant="brown"
+                onClick={() => {
+                  setShowTerms(false);
+                  setTermsAccepted(false);
+                }}
+              >
+                Cancel
+              </PixelBtn>
+              <PixelBtn
+                variant="gold"
+                onClick={handleBuy}
+                disabled={!termsAccepted}
+              >
+                Proceed to Checkout
+              </PixelBtn>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'flex', height: '10px' }}>
         {Array.from({ length: 40 }).map((_, i) => (

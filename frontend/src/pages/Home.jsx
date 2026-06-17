@@ -78,9 +78,9 @@ export default function Home() {
           {[
             { icon: '⚔', label: 'Adventure', color: 'var(--bright-green)', border: '#2d5a10', bg: 'rgba(45,90,16,0.2)' },
             { icon: '🏰', label: 'Custom Builds', color: '#b8955a', border: '#5c3318', bg: 'rgba(92,51,24,0.25)' },
-            { icon: '★', label: 'Premium Quality', color: '#f0c040', border: '#8a6010', bg: 'rgba(138,96,16,0.2)' },
+            { icon: '★', label: 'Good Quality', color: '#f0c040', border: '#8a6010', bg: 'rgba(138,96,16,0.2)' },
           ].map(p => (
-            <span key={p.label} style={{
+            <span key={p.label} style={{x
               fontFamily: 'var(--pixel)',
               fontSize: '8px',
               color: p.color,

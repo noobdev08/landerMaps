@@ -15,11 +15,12 @@
 7. [API Reference](#api-reference)
 8. [Authentication & Security](#authentication--security)
 9. [Payment Processing](#payment-processing)
-10. [Frontend Integration](#frontend-integration)
-11. [Deployment](#deployment)
-12. [Development Workflow](#development-workflow)
-13. [Troubleshooting](#troubleshooting)
-14. [Code Examples](#code-examples)
+10. [Discount System](#discount-system)
+11. [Frontend Features](#frontend-features)
+12. [Deployment](#deployment)
+13. [Development Workflow](#development-workflow)
+14. [Troubleshooting](#troubleshooting)
+15. [Code Examples](#code-examples)
 
 ---
 
@@ -28,23 +29,27 @@
 ### Vision
 LanderMaps is a full-featured marketplace platform for Minecraft map creators and enthusiasts. The platform enables:
 - **Map Creators**: Upload, manage, and monetize custom maps
-- **Map Buyers**: Browse, purchase, and download maps
-- **Administrators**: Complete CRUD management with authentication
+- **Map Buyers**: Browse, purchase, and download maps with secure payments
+- **Administrators**: Complete CRUD management with authentication and pricing control
 
 ### Key Features
 - **Dual-role Access**: Public browsing vs. protected admin management
 - **Secure Authentication**: JWT-based token system with bcrypt password hashing
-- **Payment Processing**: Stripe integration for secure checkout
+- **Payment Processing**: Stripe integration for secure checkout with discount support
+- **Discount System**: Set percentage discounts on individual maps
+- **Terms Acceptance**: Required terms agreement for paid map purchases
 - **File Management**: Supabase storage for maps and thumbnails
 - **Database Management**: Prisma ORM with PostgreSQL migrations
 - **Public/Private Visibility**: Published flag controls map discoverability
+- **Download Verification**: Email-based verification for purchased map downloads
 
 ### Use Cases
-1. **Admin Creates Map**: Upload map file + thumbnail → set price → publish
-2. **Public Browses**: View map list → see details → checkout or download (free)
-3. **Buyer Purchases**: Select map → checkout with Stripe → download via email verification
-4. **Admin Edits**: Update details, price, or visibility status
-5. **Admin Deletes**: Remove map and associated order data
+1. **Admin Creates Map**: Upload map file + thumbnail → set price and optional discount → publish
+2. **Public Browses**: View map list with discount badges → see details → checkout or download (free)
+3. **Buyer Purchases**: Select paid map → accept terms modal → checkout with Stripe → receive download link
+4. **Discount Application**: Set 20% discount → original price struck through → new price shown in Stripe
+5. **Admin Edits**: Update details, price, discount, or visibility status
+6. **Admin Deletes**: Remove map and associated order data
 
 ---
 
@@ -53,17 +58,17 @@ LanderMaps is a full-featured marketplace platform for Minecraft map creators an
 ### System Overview
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     Frontend (React/Next.js)                │
-│         (Handles UI, auth UI, checkout redirect)            │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ HTTP/REST
-                           ▼
+│                   Frontend (React + Vite)                   │
+│    (Homepage, Map Detail, Admin Dashboard, Checkout UI)     │
+└──────────────────────────────────┬──────────────────────────┘
+                                   │ HTTP/REST
+                                   ▼
 ┌─────────────────────────────────────────────────────────────┐
 │          Express.js Backend (Node.js)                       │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │ PUBLIC ROUTES (/):                                  │    │
-│  │  - GET / → List published maps (with thumbnails)    │    │
-│  │  - GET /:id → Get map detail                        │    │
+│  │  - GET / → List published maps with discounts       │    │
+│  │  - GET /:id → Get map detail + discount info        │    │
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │ AUTH ROUTES (/auth):                                │    │
@@ -72,14 +77,14 @@ LanderMaps is a full-featured marketplace platform for Minecraft map creators an
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │ ADMIN ROUTES (/admin) [Protected]:                  │    │
 │  │  - GET /maps → Get all maps (admin view)            │    │
-│  │  - POST /maps → Create map                          │    │
-│  │  - PATCH /maps/:id → Update map                     │    │
+│  │  - POST /maps → Create map with discount support    │    │
+│  │  - PATCH /maps/:id → Update map incl. discount      │    │
 │  │  - DELETE /maps/:id → Delete map                    │    │
 │  │  - POST /upload → Upload file to Supabase          │    │
 │  └─────────────────────────────────────────────────────┘    │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │ PAYMENT ROUTES (/api):                              │    │
-│  │  - POST /checkout → Create Stripe session           │    │
+│  │  - POST /checkout → Create Stripe session w/discount│    │
 │  │  - GET /download/:id → Get signed download URL      │    │
 │  │  - POST /webhook → Stripe webhook handler           │    │
 │  └─────────────────────────────────────────────────────┘    │
@@ -94,74 +99,81 @@ LanderMaps is a full-featured marketplace platform for Minecraft map creators an
 
 ### Data Flow Examples
 
-**Authentication Flow:**
+**Homepage with Discounts:**
 ```
-Frontend POST /auth/login {username, password}
-  → Backend verifies credentials with bcrypt
-  → JWT token signed with JWT_AUTH secret
-  → Return token to frontend
-  → Frontend stores token in header for future requests
+Frontend GET /
+  → Backend returns published maps with discount field
+  → Frontend displays discount badge if discount > 0
+  → Shows: -X% badge + original price struck + new price in green
 ```
 
-**Purchase Flow:**
+**Paid Map Purchase with Terms:**
 ```
-Frontend POST /api/checkout {mapId}
-  → Backend creates Stripe session with map details
-  → Return checkout URL to frontend
-  → Frontend redirects user to Stripe
-  → User completes payment on Stripe
+Frontend clicks "Buy Now" on paid map
+  → Terms acceptance modal appears
+  → User checks "I accept terms"
+  → Frontend POST /api/checkout {mapId}
+  → Backend calculates: price * (100 - discount) / 100
+  → Backend creates Stripe session with discounted amount
+  → Returns checkout URL
+  → Frontend redirects to Stripe with discounted price
+  → User completes payment
   → Stripe webhook calls backend POST /api/webhook
-  → Backend creates Order record in database
-  → User downloads via POST /api/download?email=buyer@example.com
+  → Backend creates Order record with amountPaid (after discount)
+  → User receives download link via email verification
 ```
 
-**Admin Map Management:**
+**Admin Discount Management:**
 ```
-Frontend authenticated with JWT token
-  1. Upload: POST /admin/upload?type=map → Get fileUrl
-  2. Create: POST /admin/maps {title, description, price, fileUrl, ...}
-  3. Read:   GET /admin/maps → List all maps
-  4. Update: PATCH /admin/maps/:id {updated fields}
-  5. Delete: DELETE /admin/maps/:id → Remove map
+Frontend uploads map files
+  → Frontend PATCH /admin/maps/:id {price, discount}
+  → Backend validates: discount 0-100, price >= 0
+  → Backend updates database
+  → Frontend shows: €5.00 → €2.50 (-50%) in admin list
 ```
 
 ---
 
 ## Tech Stack
 
-### Backend Core
-- **Node.js**: JavaScript runtime (ES modules enabled)
+### Frontend Stack
+- **React 19.2.4**: UI framework with hooks
+- **React Router DOM 7.14.0**: Client-side routing
+- **Vite 8.0.4**: Fast build tool and dev server
+- **Axios 1.15.0**: HTTP client for API calls
+- **CSS-in-JS**: Inline styles for styling
+
+### Backend Stack
+- **Node.js**: JavaScript runtime (ES modules)
 - **Express.js 5.2.1**: Web framework and HTTP server
 - **Prisma 7.7.0**: ORM for database management
-- **@prisma/adapter-pg**: PostgreSQL adapter for Prisma
+- **@prisma/adapter-pg**: PostgreSQL adapter
 
 ### Databases & Storage
-- **PostgreSQL**: Relational database for maps and orders
-- **Supabase**: Hosted PostgreSQL + file storage (S3-compatible)
+- **PostgreSQL**: Relational database (via Supabase)
+- **Supabase**: Hosted PostgreSQL + S3-compatible file storage
 
 ### Authentication & Security
-- **jsonwebtoken 9.0.3**: JWT token generation and verification
-- **bcrypt 6.0.0**: Password hashing for secure storage
+- **jsonwebtoken 9.0.3**: JWT token generation/verification
+- **bcrypt 6.0.0**: Password hashing
 - **dotenv 17.4.1**: Environment variable management
 
-### Payment & Integration
-- **stripe 22.0.1**: Payment processing and checkout sessions
-- **body-parser 2.2.2**: Raw request body parsing for webhook verification
+### Payment & External Services
+- **Stripe 22.0.1**: Payment processing and checkout
+- **@supabase/supabase-js**: Supabase SDK for file uploads
 
 ---
 
 ## Setup & Installation
 
 ### Prerequisites
+- Node.js 18+ ([nodejs.org](https://nodejs.org/))
+- PostgreSQL via Supabase or local install
+- Git for version control
 
-Ensure you have installed:
-- **Node.js 18+**: Download from [nodejs.org](https://nodejs.org/)
-- **PostgreSQL**: Locally or via Supabase
-- **Git**: For version control
+### Backend Setup
 
-### Step-by-Step Installation
-
-1. **Clone and Navigate**:
+1. **Navigate to Backend**:
    ```bash
    cd landerMaps/backend
    ```
@@ -171,10 +183,9 @@ Ensure you have installed:
    npm install
    ```
 
-3. **Configure Environment** (see [Environment Configuration](#environment-configuration)):
+3. **Create .env File** (see [Environment Configuration](#environment-configuration)):
    ```bash
-   # Create .env file with all required variables
-   cp .env.example .env  # or create manually
+   # Edit or create backend/.env with all variables
    ```
 
 4. **Initialize Database**:
@@ -182,34 +193,47 @@ Ensure you have installed:
    # Generate Prisma client
    npx prisma generate
 
-   # Push schema to database (creates tables)
-   npx prisma db push
-
-   # Or run migrations (if database already exists)
+   # Apply migrations
    npx prisma migrate deploy
+
+   # Or push schema if no migrations exist
+   npx prisma db push
    ```
 
 5. **Start Development Server**:
    ```bash
    npm run dev
+   # Server listens on http://localhost:5000
    ```
-   Server listens on `http://localhost:5000`
 
-6. **Verify Installation**:
+### Frontend Setup
+
+1. **Navigate to Frontend**:
    ```bash
-   # Test public endpoint
-   curl http://localhost:5000/
+   cd landerMaps/frontend
+   ```
 
-   # Should return array of published maps (or empty if no maps exist)
+2. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+3. **Start Development Server**:
+   ```bash
+   npm run dev
+   # Server listens on http://localhost:5173
+   ```
+
+4. **Build for Production**:
+   ```bash
+   npm run build
    ```
 
 ---
 
 ## Environment Configuration
 
-### `.env` File Template
-
-Create `backend/.env` with the following variables:
+### Backend `.env` File Template
 
 ```env
 # ========================================
@@ -221,66 +245,50 @@ DIRECT_URL="postgresql://user:password@host:5432/dbname"
 # ========================================
 # AUTHENTICATION
 # ========================================
-JWT_AUTH="your-super-secret-jwt-key-at-least-32-chars"
+JWT_AUTH="your-super-secret-jwt-key-min-32-chars"
 ADMIN_USERNAME="admin"
-ADMIN_PASSWORD="$2b$10$hashed.bcrypt.password.here"
+ADMIN_PASSWORD="$2b$10$hashed.bcrypt.password"
 
 # ========================================
 # STRIPE PAYMENT PROCESSING
 # ========================================
 STRIPE_SECRET_KEY="sk_test_xxxxxxxxxxxxx"
 STRIPE_WEBHOOK_SECRET="whsec_xxxxxxxxxxxxx"
-CLIENT_URL="http://localhost:3000"
+CLIENT_URL="http://localhost:5173"
+PORT=5000
 
 # ========================================
 # SUPABASE STORAGE
 # ========================================
 SUPABASE_URL="https://xxxxx.supabase.co"
 SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-# ========================================
-# SERVER CONFIGURATION
-# ========================================
-PORT=5000
 ```
 
-### Environment Variable Details
+### Environment Variable Reference
 
 | Variable | Purpose | Example |
 |----------|---------|---------|
-| `DATABASE_URL` | PostgreSQL connection string (connection pooling) | `postgresql://user:pass@localhost:5432/maps` |
-| `DIRECT_URL` | PostgreSQL direct connection (migrations) | Same as `DATABASE_URL` |
-| `JWT_AUTH` | Secret key for signing JWT tokens | `MyS3cr3tK3y123456789...` |
-| `ADMIN_USERNAME` | Username for admin login | `admin` |
-| `ADMIN_PASSWORD` | Bcrypt-hashed admin password | `$2b$10$...` |
-| `STRIPE_SECRET_KEY` | Stripe secret for API calls | `sk_test_...` |
-| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing secret | `whsec_...` |
-| `CLIENT_URL` | Frontend URL for Stripe redirects | `http://localhost:3000` |
+| `DATABASE_URL` | PostgreSQL pooled connection | `postgresql://user:pass@localhost:5432/maps` |
+| `DIRECT_URL` | PostgreSQL direct connection (migrations) | Same as above |
+| `JWT_AUTH` | Secret for signing JWT tokens | `MyS3cr3tK3y1234567890...` |
+| `ADMIN_USERNAME` | Admin login username | `admin` |
+| `ADMIN_PASSWORD` | Bcrypt-hashed password | `$2b$10$...` |
+| `STRIPE_SECRET_KEY` | Stripe API secret key | `sk_test_...` |
+| `STRIPE_WEBHOOK_SECRET` | Stripe webhook signing key | `whsec_...` |
+| `CLIENT_URL` | Frontend URL (for Stripe redirects) | `http://localhost:5173` |
 | `SUPABASE_URL` | Supabase project URL | `https://abcdef.supabase.co` |
-| `SUPABASE_SERVICE_KEY` | Service role key for Supabase | Long JWT starting with `eyJ...` |
-| `PORT` | Server port (optional, default 5000) | `5000` |
+| `SUPABASE_SERVICE_KEY` | Supabase service role key (secret) | `eyJ...` (long JWT) |
+| `PORT` | Backend server port | `5000` |
 
-### Getting Credentials
-
-**PostgreSQL/Supabase**:
-- Use Supabase dashboard → Settings → Database → Connection string
-- Copy `postgresql://...` format
-
-**Stripe**:
-- Login to Stripe dashboard
-- Developers → API Keys → Copy Secret Key and Webhook Secret
-- Create webhook endpoint at `http://yourdomain.com/api/webhook`
-
-**Supabase Storage**:
-- Supabase dashboard → Settings → API
-- Copy `Project URL` and `Service Role Key` (secret)
+### Credential Generation Guide
 
 **JWT Secret**:
-- Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-
-**Admin Password**:
 ```bash
-# Generate bcrypt hash of your password
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+**Bcrypt Password Hash**:
+```bash
 node -e "
 const bcrypt = require('bcrypt');
 bcrypt.hash('YourPasswordHere', 10, (err, hash) => {
@@ -290,6 +298,10 @@ bcrypt.hash('YourPasswordHere', 10, (err, hash) => {
 "
 ```
 
+**Stripe Keys**: Dashboard → Developers → API Keys → Copy Secret Key + Webhook Secret
+
+**Supabase**: Dashboard → Settings → API → Copy Project URL + Service Role Key
+
 ---
 
 ## Database Schema
@@ -297,78 +309,99 @@ bcrypt.hash('YourPasswordHere', 10, (err, hash) => {
 ### Entity Relationship Diagram
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                        Map                              │
-├─────────────────────────────────────────────────────────┤
-│ id (PK)              Int @id @autoincrement             │
-│ title                String                             │
-│ description          String                             │
-│ price                Int (cents, 0 = free)              │
-│ fileUrl              String (Supabase path)             │
-│ thumbnail            String (Supabase path)             │
-│ tags                 String[] (array)                   │
-│ changelog            String? (optional)                 │
-│ published            Boolean @default(true)             │
-│ createdAt            DateTime @default(now())           │
-│ updatedAt            DateTime @updatedAt                │
-│ orders               Order[] (relation)                 │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                       Map                                │
+├──────────────────────────────────────────────────────────┤
+│ id                   Int @id @autoincrement              │
+│ title                String                              │
+│ description          String                              │
+│ price                Int (cents, 0 = free)               │
+│ discount             Int? (0-100, optional)              │
+│ fileUrl              String (Supabase storage path)      │
+│ filePath             String (Storage key for signing)    │
+│ thumbnail            String (Supabase storage path)      │
+│ thumbnailPath        String (Storage key)                │
+│ tags                 String[] (array)                    │
+│ changelog            String? (optional)                  │
+│ published            Boolean @default(true)              │
+│ createdAt            DateTime @default(now())            │
+│ updatedAt            DateTime @updatedAt                 │
+│ orders               Order[] (1:N relation)              │
+└──────────────────────────────────────────────────────────┘
            │
            │ 1:N Relationship
            │ (One map has many orders)
            ▼
-┌─────────────────────────────────────────────────────────┐
-│                       Order                             │
-├─────────────────────────────────────────────────────────┤
-│ id (PK)              Int @id @autoincrement             │
-│ mapId (FK)           Int                                │
-│ map                  Map (relation)                     │
-│ stripeSessionId      String @unique                     │
-│ buyerEmail           String                             │
-│ amountPaid           Int (cents)                        │
-│ createdAt            DateTime @default(now())           │
-└─────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                      Order                               │
+├──────────────────────────────────────────────────────────┤
+│ id                   Int @id @autoincrement              │
+│ mapId                Int (Foreign Key)                   │
+│ map                  Map (relation)                      │
+│ stripeSessionId      String @unique                      │
+│ buyerEmail           String                              │
+│ amountPaid           Int (cents, includes discount)      │
+│ createdAt            DateTime @default(now())            │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### Table: Map
 
-**Purpose**: Stores metadata for each Minecraft map available in the marketplace
+**Purpose**: Stores all map metadata for the marketplace
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | Int | Primary Key, Auto-increment | Unique map identifier |
-| `title` | String | Not null | Map name displayed to users |
-| `description` | String | Not null | Long-form description of map |
+| `id` | Int | PK, Auto-increment | Unique identifier |
+| `title` | String | Not null | Map name/title |
+| `description` | String | Not null | Long-form description |
 | `price` | Int | Not null | Price in cents (100 = €1.00, 0 = free) |
-| `fileUrl` | String | Not null | Supabase storage path to .zip file |
-| `thumbnail` | String | Not null | Supabase storage path to image |
-| `tags` | String[] | Default [] | Search/filter tags (e.g., ["adventure", "parkour"]) |
-| `changelog` | String | Nullable | Version notes or update history |
+| `discount` | Int? | Optional, 0-100 | Discount percentage (null = no discount) |
+| `fileUrl` | String | Not null | Public URL to .zip file on Supabase |
+| `filePath` | String | Not null | Storage path for generating signed URLs |
+| `thumbnail` | String | Not null | Public URL to thumbnail image |
+| `thumbnailPath` | String | Not null | Storage path for thumbnail |
+| `tags` | String[] | Default [] | Search tags ["adventure", "survival"] |
+| `changelog` | String | Nullable | Version notes/update history |
 | `published` | Boolean | Default true | Controls public visibility |
-| `createdAt` | DateTime | Default now() | Timestamp of creation |
-| `updatedAt` | DateTime | Auto-update | Modified timestamp |
+| `createdAt` | DateTime | Default now() | Creation timestamp |
+| `updatedAt` | DateTime | Auto-update | Last modification timestamp |
 
 ### Table: Order
 
-**Purpose**: Tracks purchases and payment records for audit and download verification
+**Purpose**: Purchase records for audit and download authorization
 
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
-| `id` | Int | Primary Key | Unique order identifier |
-| `mapId` | Int | Foreign Key → Map.id | Links to purchased map |
-| `stripeSessionId` | String | Unique | Stripe session ID for payment verification |
-| `buyerEmail` | String | Not null | Email used to authorize future downloads |
-| `amountPaid` | Int | Not null | Actual amount paid in cents |
+| `id` | Int | PK, Auto-increment | Order ID |
+| `mapId` | Int | FK → Map.id | Link to purchased map |
+| `stripeSessionId` | String | Unique | Stripe session ID |
+| `buyerEmail` | String | Not null | Email for download verification |
+| `amountPaid` | Int | Not null | Final paid amount in cents (after discount) |
 | `createdAt` | DateTime | Default now() | Payment timestamp |
 
-### Schema Migrations
+### Discount System Behavior
 
-**Migration History** (located in `backend/prisma/migrations/`):
+**Discount Field**:
+- Optional field (NULL if no discount)
+- Valid range: 0-100 (percentage)
+- Applied at checkout: `finalPrice = price * (100 - discount) / 100`
+- Displayed on homepage badge, detail page, and admin dashboard
 
-1. **20260409212437_init**: Initial schema with Map, Order, DiscountCode
-2. **20260410004449_int**: Converted price fields to INTEGER (cents)
-3. **20260410010525_x_discount**: Removed DiscountCode table and Map.isFree field
-4. **20260410015142_published**: Added Map.published boolean field
+**Example**:
+- Original price: €50.00 (5000 cents)
+- Discount: 20%
+- Final price: €40.00 (4000 cents)
+- Formula: 5000 * (100 - 20) / 100 = 4000
+
+### Migration History
+
+Located in `backend/prisma/migrations/`:
+
+1. **20260409212437_init** - Initial schema
+2. **20260410004449_int** - Price fields to INTEGER
+3. **20260410010525_x_discount** - Removed old discount system
+4. **20260410015142_published** - Added published field
+5. **20260528011551_add_discount** - Added discount percentage field
 
 ---
 
@@ -380,27 +413,24 @@ http://localhost:5000
 ```
 
 ### Response Format
-All responses are JSON. Error responses include a `message` field:
-```json
-{ "message": "Error description" }
-```
+All responses are JSON:
+- Success: `{ "data": {...} }` or direct object/array
+- Error: `{ "message": "Error description" }`
 
 ### Authentication
-Protected routes require the JWT token in the `authorization` header:
+Protected routes require JWT in the `authorization` header:
 ```
 headers: { "authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }
 ```
 
 ---
 
-### Public Routes
+## Public Routes
 
-#### GET `/`
-**List All Published Maps**
+### GET `/`
+**List Published Maps**
 
-Returns paginated list of published maps (public browsing view).
-
-**Query Parameters**: None
+Returns all published maps with optional discount info.
 
 **Response**: `200 OK`
 ```json
@@ -408,34 +438,33 @@ Returns paginated list of published maps (public browsing view).
   {
     "id": 1,
     "title": "Adventure Map",
-    "thumbnail": "thumbnails/1712000000000_map.png",
-    "price": 2500,
+    "thumbnail": "https://...",
+    "price": 5000,
+    "discount": 20,
     "tags": ["adventure", "exploration"]
   },
   {
     "id": 2,
     "title": "Free Parkour",
-    "thumbnail": "thumbnails/1712000010000_parkour.png",
+    "thumbnail": "https://...",
     "price": 0,
-    "tags": ["parkour", "free"]
+    "discount": null,
+    "tags": ["parkour"]
   }
 ]
 ```
 
-**Error Responses**:
-- `500 Server Error` `{ "message": "Server error" }`
-
-**Usage Notes**:
-- Only returns maps with `published: true`
-- Sorted by `createdAt` descending (newest first)
-- Includes subset of fields (not full description or changelog)
+**Notes**:
+- Only published maps (`published: true`)
+- Sorted by `createdAt` descending
+- Discount field included (null if no discount)
 
 ---
 
-#### GET `/:id`
+### GET `/:id`
 **Get Map Details**
 
-Returns full details for a single published map.
+Returns full map information with discount.
 
 **URL Parameters**:
 - `id` (number) - Map ID
@@ -445,33 +474,29 @@ Returns full details for a single published map.
 {
   "id": 1,
   "title": "Adventure Map",
-  "description": "Explore a vast world with dungeons and treasures...",
-  "thumbnail": "thumbnails/1712000000000_map.png",
-  "price": 2500,
+  "description": "Explore a vast world with dungeons...",
+  "thumbnail": "https://...",
+  "price": 5000,
+  "discount": 20,
   "tags": ["adventure", "exploration"],
-  "changelog": "v1.2: Added new dungeon level"
+  "changelog": "v1.2: Added new level"
 }
 ```
 
-**Error Responses**:
-- `404 Not Found` `{ "message": "Map not found" }`
-- `500 Server Error` `{ "message": "Server error" }`
-
-**Example**:
-```bash
-curl http://localhost:5000/1
-```
+**Errors**:
+- `404 Not Found` - Map doesn't exist
+- `500 Server Error`
 
 ---
 
-### Authentication Routes
+## Authentication Routes
 
-#### POST `/auth/login`
+### POST `/auth/login`
 **Admin Login**
 
-Authenticates admin credentials and returns a JWT token.
+Returns JWT token for authenticated requests.
 
-**Request Body**:
+**Request**:
 ```json
 {
   "username": "admin",
@@ -482,103 +507,65 @@ Authenticates admin credentials and returns a JWT token.
 **Response**: `200 OK`
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluIiwiaWF0IjoxNzEyNDAwMDAwLCJleHAiOjE3MTI0NDMyMDB9.signature"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request` `{ "message": "Incorrect Password" }`
-- `400 Bad Request` `{ "message": "Unauthorized access, invalid username" }`
-- `500 Server Error` `{ "message": "Server error" }`
-
 **Token Details**:
 - Expires in 12 hours
-- Store in frontend and attach to subsequent requests: `headers: { "authorization": token }`
-- Signed with `JWT_AUTH` environment variable
+- Sign subsequent requests: `headers: { "authorization": token }`
 
-**Example**:
-```bash
-curl -X POST http://localhost:5000/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "admin", "password": "MyPassword"}'
-```
+**Errors**:
+- `400 Bad Request` - Invalid username or password
+- `500 Server Error`
 
 ---
 
-### Admin Routes (Protected)
+## Admin Routes (Protected)
 
-**All admin routes require JWT token in `authorization` header.**
+**All require JWT token in `authorization` header.**
 
-#### POST `/admin/upload?type=map` | `/admin/upload?type=thumbnail`
+### POST `/admin/upload?type=map|thumbnail`
 **Upload File to Supabase**
 
-Uploads a file to Supabase storage and returns the storage path.
-
 **Query Parameters** (Required):
-- `type=map` - Upload a map .zip file
-- `type=thumbnail` - Upload a map image thumbnail
+- `type=map` - Upload map .zip file
+- `type=thumbnail` - Upload map image
 
-**Request Headers**:
+**Request**:
 ```
-authorization: <JWT token>
-Content-Type: multipart/form-data
+Headers: authorization: <JWT>
+Body: multipart/form-data with "file" field
 ```
-
-**Request Body** (multipart):
-- `file` - The file to upload (form field name must be `file`)
 
 **Response**: `200 OK`
 ```json
 {
-  "filePath": "maps/1712000000000_MyMap.zip"
+  "url": "https://supabase.../maps/1712000000000_MyMap.zip",
+  "path": "maps/1712000000000_MyMap.zip"
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request` `{ "message": "Query param 'type' must be 'map' or 'thumbnail'" }`
-- `400 Bad Request` `{ "message": "No file provided" }`
-- `500 Server Error` `{ "message": "Upload failed" }`
-
-**Usage Notes**:
-- Automatically prefixes filename with timestamp to ensure uniqueness
-- Max file size depends on your Supabase plan (typically 5GB)
-- Returns full storage path to use in map creation
-
-**Example**:
-```javascript
-const formData = new FormData();
-formData.append('file', mapFile); // HTML File object
-
-const response = await fetch('http://localhost:5000/admin/upload?type=map', {
-  method: 'POST',
-  headers: { 'authorization': jwtToken },
-  body: formData  
-});
-const { filePath } = await response.json();
-```
+**Errors**:
+- `400 Bad Request` - Invalid type or no file
+- `500 Server Error` - Upload failed
 
 ---
 
-#### GET `/admin/maps`
+### GET `/admin/maps`
 **List All Maps (Admin View)**
 
-Returns all maps (published and unpublished) with all fields.
-
-**Request Headers**:
-```
-authorization: <JWT token>
-```
+Returns all maps (published and draft).
 
 **Response**: `200 OK`
-```json 
+```json
 [
   {
     "id": 1,
     "title": "Adventure Map",
     "description": "...",
-    "price": 2500,
-    "fileUrl": "maps/1712000000000_adventure.zip",
-    "thumbnail": "thumbnails/1712000000000_thumb.png",
+    "price": 5000,
+    "discount": 20,
     "tags": ["adventure"],
     "changelog": "v1.2",
     "published": true,
@@ -588,76 +575,54 @@ authorization: <JWT token>
 ]
 ```
 
-**Error Responses**:
-- `500 Server Error` `{ "message": "Server error" }`
-
 ---
 
-#### POST `/admin/maps`
+### POST `/admin/maps`
 **Create New Map**
 
-Creates a new map record in the database.
-
-**Request Headers**:
-```
-authorization: <JWT token>
-Content-Type: application/json
-```
-
-**Request Body**:
+**Request**:
 ```json
 {
   "title": "Adventure Map",
-  "description": "Explore a vast world with dungeons and treasures",
-  "price": 2500,
+  "description": "Explore dungeons and treasures",
+  "price": 5000,
+  "discount": 20,
   "fileUrl": "maps/1712000000000_adventure.zip",
+  "filePath": "maps/1712000000000_adventure.zip",
   "thumbnail": "thumbnails/1712000000000_thumb.png",
+  "thumbnailPath": "thumbnails/1712000000000_thumb.png",
   "tags": ["adventure", "exploration"],
   "changelog": "Initial release",
   "published": true
 }
 ```
 
-**Required Fields**: title, description, price, fileUrl, thumbnail  
-**Optional Fields**: tags (default []), changelog, published (default true)
+**Required**: title, description, price, fileUrl, filePath, thumbnail, thumbnailPath
+**Optional**: tags, changelog, published, discount
 
 **Response**: `201 Created`
 ```json
 {
   "message": "Map created successfully",
-  "newMap": {
-    "id": 5,
-    "title": "Adventure Map",
-    ...
-  }
+  "newMap": { ... }
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request` `{ "message": "Missing required fields" }`
-- `500 Server Error` `{ "message": "Server error" }`
+**Errors**:
+- `400 Bad Request` - Missing fields or invalid discount
+- `500 Server Error`
 
 ---
 
-#### PATCH `/admin/maps/:id`
+### PATCH `/admin/maps/:id`
 **Update Map**
 
-Updates one or more fields of an existing map.
-
-**URL Parameters**:
-- `id` (number) - Map ID to update
-
-**Request Headers**:
-```
-authorization: <JWT token>
-Content-Type: application/json
-```
-
-**Request Body** (any or all fields):
+**Request**:
 ```json
 {
   "title": "Updated Title",
   "price": 3000,
+  "discount": 15,
   "published": false
 }
 ```
@@ -670,25 +635,14 @@ Content-Type: application/json
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request` `{ "message": "Map ID is required" }`
-- `400 Bad Request` `{ "message": "Price cannot be negative" }`
-- `500 Server Error` `{ "message": "Server error" }`
+**Validation**:
+- Discount: 0-100 or null
+- Price: >= 0
 
 ---
 
-#### DELETE `/admin/maps/:id`
+### DELETE `/admin/maps/:id`
 **Delete Map**
-
-Deletes a map record from the database.
-
-**URL Parameters**:
-- `id` (number) - Map ID to delete
-
-**Request Headers**:
-```
-authorization: <JWT token>
-```
 
 **Response**: `200 OK`
 ```json
@@ -697,25 +651,16 @@ authorization: <JWT token>
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request` `{ "message": "Map ID is required" }`
-- `404 Not Found` `{ "message": "Map not found" }`
-- `500 Server Error` `{ "message": "Server error" }`
-
-**Notes**:
-- Cascades to delete associated Order records
-- Does NOT delete files from Supabase (cleanup manually if needed)
-
 ---
 
-### Payment Routes
+## Payment Routes
 
-#### POST `/api/checkout`
+### POST `/api/checkout`
 **Create Stripe Checkout Session**
 
-Initiates a Stripe checkout session for a map purchase.
+Creates a Stripe session with **discounted price applied**.
 
-**Request Body**:
+**Request**:
 ```json
 {
   "mapId": 1
@@ -729,90 +674,86 @@ Initiates a Stripe checkout session for a map purchase.
 }
 ```
 
-**Error Responses**:
-- `404 Not Found` `{ "message": "Map not found" }`
-- `500 Server Error` `{ "message": "Server error" }`
+**Price Calculation**:
+```
+If discount exists:
+  finalPrice = price * (100 - discount) / 100
+Else:
+  finalPrice = price
+```
 
-**Usage Flow**:
-1. Frontend calls endpoint → receives `url`
-2. Redirect user to `url` (Stripe checkout page)
-3. User completes payment on Stripe
-4. Stripe redirects to `${CLIENT_URL}/success?session_id=...` or `${CLIENT_URL}/cancel`
-5. User can download via `/api/download/:id?email=buyer@example.com`
+**Example**:
+- Map price: €50.00 (5000 cents)
+- Discount: 20%
+- Stripe charges: €40.00 (4000 cents)
 
-**Stripe Behavior**:
-- Currency: EUR
-- Metadata includes mapId for download verification
-- Success URL: `${CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`
-- Cancel URL: `${CLIENT_URL}/cancel`
+**Errors**:
+- `404 Not Found` - Map doesn't exist
+- `500 Server Error`
 
 ---
 
-#### GET `/api/download/:id?email=<buyerEmail>`
-**Get Signed Download URL**
+### GET `/api/download/:id?email=buyer@example.com`
+**Get Download Link**
 
-Returns a temporary signed download URL for a map file.
+Returns signed Supabase URL for map file (free or purchased).
 
-**URL Parameters**:
-- `id` (number) - Map ID to download
-- `email` (query, optional for free maps) - Buyer email for authorization
+**Query Parameters** (Required):
+- `email` - Buyer email (for purchased maps)
 
 **Response**: `200 OK`
 ```json
 {
-  "downloadUrl": "https://xxxxx.supabase.co/storage/v1/object/sign/maps/1712000000000_adventure.zip?token=xxxxx&expires=1712086400"
+  "downloadUrl": "https://supabase.../maps/1712000000000_map.zip?token=xxxxx"
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request` `{ "message": "Email is required" }` (for paid maps)
-- `403 Forbidden` `{ "message": "Please purchase this map first" }` (order not found)
-- `404 Not Found` `{ "message": "Map not found" }`
-- `500 Server Error` `{ "message": "Server error" }`
-
 **Logic**:
-- **Free maps** (price = 0): No email required
-- **Paid maps**: Email must match a completed Order record for that map
-- URL is valid for 24 hours (86400 seconds)
-- Email comparison is case-insensitive
+- Free map (`price === 0`): Return directly
+- Paid map: Check if email has purchase order
+- If no order: `403 Forbidden` - "Please purchase this map first"
 
-**Example**:
-```bash
-# Free map
-curl http://localhost:5000/api/download/2
-
-# Paid map
-curl 'http://localhost:5000/api/download/1?email=buyer@example.com'
-```
+**Errors**:
+- `400 Bad Request` - Email required for paid maps
+- `403 Forbidden` - No purchase found
+- `404 Not Found` - Map not found
+- `500 Server Error`
 
 ---
 
-#### POST `/api/webhook`
-**Stripe Webhook Endpoint**
+### POST `/api/webhook`
+**Stripe Webhook Handler**
 
-Receives webhook events from Stripe. Creates an Order record on successful checkout.
+Receives Stripe events and creates Order records.
 
-**Request Headers**:
-```
-stripe-signature: t=1712000000,v1=xxxxx,...
-Content-Type: application/json
-```
+**Stripe Configuration**:
+- Event: `checkout.session.completed`
+- Endpoint: `http://yourdomain.com/api/webhook`
+- Signing secret: `STRIPE_WEBHOOK_SECRET`
 
-**Request Body**: (Stripe sends; your backend receives)
+**Webhook Payload** (example):
 ```json
 {
-  "id": "evt_xxxxx",
   "type": "checkout.session.completed",
   "data": {
     "object": {
       "id": "cs_test_xxxxx",
-      "metadata": { "mapId": "1" },
-      "customer_details": { "email": "buyer@example.com" },
-      "amount_total": 2500
+      "amount_total": 4000,
+      "customer_details": {
+        "email": "buyer@example.com"
+      },
+      "metadata": {
+        "mapId": "1"
+      }
     }
   }
 }
 ```
+
+**Action**:
+- Verify webhook signature
+- Create Order with `amountPaid` (final amount after discount)
+- Prevent duplicate orders
 
 **Response**: `200 OK`
 ```json
@@ -821,728 +762,564 @@ Content-Type: application/json
 }
 ```
 
-**Error Responses**:
-- `400 Bad Request` on invalid signature
+---
 
-**Setup**:
-1. Create webhook endpoint in Stripe Dashboard
-2. URL: `http://yourdomain.com/api/webhook`
-3. Events: Select `checkout.session.completed`
-4. Copy webhook signing secret → `STRIPE_WEBHOOK_SECRET` env var
-5. Backend verifies signature before creating Order
+## Discount System
 
-**Automatic Behavior**:
-- On valid `checkout.session.completed` event:
-  - Create Order record with mapId, stripeSessionId, buyerEmail, amountPaid
-  - Order enables customer download via `/api/download/:id?email=...`
+### Overview
+The discount system allows setting percentage-based discounts on individual maps.
+
+### Features
+- **Optional**: Each map can have 0% discount or no discount (NULL)
+- **Percentage-based**: 0-100% off
+- **Automatic Calculation**: Applied at checkout automatically
+- **Transparency**: Shown on homepage, detail page, and admin dashboard
+
+### Admin Dashboard Discount Input
+
+**Location**: Admin Dashboard → Create/Edit Map
+
+**Input Field**:
+- Label: "Discount (% off, optional)"
+- Type: Number input
+- Range: 0-100
+- Default: Empty (no discount)
+- Live preview: Shows calculated discounted price
+
+**Display in Admin Map List**:
+```
+Without discount:  €5.00
+With 20% discount: €5.00 → €4.00 (-20%)
+```
+
+### Frontend Homepage Badge
+
+**When discount exists** (discount > 0):
+```
+┌─────────────────────────┐
+│ -20% (red badge)        │
+│ €5.00 (strikethrough)   │
+│ €4.00 (green, bold)     │
+└─────────────────────────┘
+```
+
+**When no discount** (discount = null):
+```
+┌──────────────────┐
+│ €5.00 (gold)     │
+│ or               │
+│ FREE (green)     │
+└──────────────────┘
+```
+
+### Frontend Map Detail Page
+
+**Price Display with Discount**:
+```
+-20% OFF (red text)
+€5.00 → €4.00 (strikethrough original, green new price)
+```
+
+**Price Display without Discount**:
+```
+€5.00 (gold text, large)
+or FREE (green, large)
+```
+
+### Stripe Checkout Integration
+
+**Automatic Application**:
+1. User clicks "Buy Now" on paid map
+2. Terms acceptance modal appears
+3. User accepts terms
+4. Frontend POST `/api/checkout {mapId}`
+5. Backend retrieves map with discount
+6. Backend calculates: `finalPrice = price * (100 - discount) / 100`
+7. Stripe session created with discounted amount
+8. User sees discounted price in Stripe
+
+**Example Flow**:
+- Map created: €50.00, 20% discount
+- Stripe checkout: €40.00
+- Payment confirms at €40.00
+- Order stores `amountPaid: 4000` (4000 cents)
+
+### Backend Validation
+
+**Create/Update Map**:
+```javascript
+if (discount !== undefined && (discount < 0 || discount > 100)) {
+  return res.status(400).json({ message: "Discount must be between 0 and 100" });
+}
+```
+
+**Checkout Session**:
+```javascript
+const finalPrice = map.discount
+  ? Math.round(map.price * (100 - map.discount) / 100)
+  : map.price;
+```
 
 ---
 
-## Authentication & Security
+## Frontend Features
 
-### JWT Token Flow
+### Pages
 
-**Token Generation** (on login):
-```javascript
-const token = jwt.sign(
-  { username: username },
-  process.env.JWT_AUTH,
-  { expiresIn: "12h" }
-);
-```
+#### Home Page (`frontend/src/pages/Home.jsx`)
+- **Displays**: Published maps in grid layout
+- **Discount Badge**: Shows `-X%` in red + original/new prices
+- **Features**: Hero section, map grid, search tags
+- **Hover Effect**: Scale image, highlight border
 
-**Token Verification** (on protected routes):
-```javascript
-jwt.verify(token, process.env.JWT_AUTH, (err, decoded) => {
-  if (err) return res.status(400).json({ message: "Unauthorized access" });
-  req.username = decoded.username; // Attach to request
-  next();
-});
-```
+#### Map Detail Page (`frontend/src/pages/MapDetail.jsx`)
+- **Displays**: Full map information with description and changelog
+- **Discount Display**: Large "-X% OFF" badge + price comparison
+- **Purchase Flow**: 
+  - Free maps: Direct download button
+  - Paid maps: "Buy Now" → Terms modal → Stripe checkout
+- **Terms Modal**: Shows acceptance checkbox for paid maps
+- **Download After Purchase**: Email verification to access download
+- **Features**: Sticky price panel, responsive layout
 
-**Token Usage**:
-- Store in frontend (localStorage, cookie, etc.)
-- Send in every admin request: `headers: { "authorization": token }`
-- Backend extracts from `req.headers['authorization']` (no "Bearer" prefix)
+#### Admin Dashboard (`frontend/src/pages/AdminDashboard.jsx`)
+- **Map Management**: Create, edit, delete maps
+- **Discount Field**: Number input with live preview of discounted price
+- **File Upload**: Map .zip and thumbnail image
+- **Map List**: Shows all maps (published/draft) with discount display
+- **Validation**: Real-time feedback on form changes
 
-### Password Security
+#### Success Page (`frontend/src/pages/Success.jsx`)
+- **Displays**: Payment success message
+- **Redirect**: Link back to store
 
-**Hashing** (admin password stored in .env):
-```javascript
-const hashedPassword = await bcrypt.hash("MyPassword", 10);
-// Store in .env: ADMIN_PASSWORD=$2b$10$hashed...
-```
+#### Cancel Page (`frontend/src/pages/Cancel.jsx`)
+- **Displays**: Payment cancelled message
+- **Imports Fixed**: Now includes `Link` and `Navbar` components
+- **Redirect**: Link back to store
 
-**Verification** (on login):
-```javascript
-const match = await bcrypt.compare(inputPassword, process.env.ADMIN_PASSWORD);
-```
+### Components
 
-### Best Practices
+#### Navbar (`frontend/src/components/Navbar.jsx`)
+- **Navigation**: Links to home, admin dashboard
+- **Styling**: Pixel-art theme with brown/gold colors
 
-1. **Never commit `.env` to Git**: Use `.env.example` for reference
-2. **Use strong JWT secrets**: At least 32 characters, random
-3. **Rotate JWT secrets periodically**: All tokens invalidated
-4. **HTTPS only in production**: Prevent token interception
-5. **Secure storage on frontend**: Use httpOnly cookies if possible
-6. **Token expiry**: 12 hours balances security and UX
+#### PixelBtn Component
+- **Styling**: Pixel-art button with multiple variants
+- **Variants**: brown, green, gold, red
+- **States**: Normal, hover, disabled
+
+### Styling Theme
+
+**Color Palette**:
+- Background: `#0d0d0d` (dark)
+- Primary: `#f0d0a0` (cream)
+- Success: `#6aaa30` (green)
+- Warning: `#f0c040` (gold)
+- Error: `#e05050` (red)
+- Accent: `#b8955a` (bronze)
+
+**Font Variables**:
+- `--pixel`: Pixel-art font (8-12px)
+- `--vt`: Variable font for body text (16-18px)
 
 ---
 
 ## Payment Processing
 
-### Stripe Integration Flow
+### Stripe Integration
 
-**Architecture**:
-```
-Frontend → Backend /checkout → Stripe Checkout Page → User Payment
-  ↓                                    ↓
-Backend stores in DB ← Stripe Webhook /webhook
-  ↓
-User downloads
-```
+**Setup**:
+1. Create Stripe account
+2. Get API keys: Dashboard → Developers → API Keys
+3. Set webhook endpoint: `https://yourdomain.com/api/webhook`
+4. Add keys to `.env`: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
 
-### Checkout Session Creation
+**Checkout Flow**:
+1. Frontend: User clicks "Buy Now" on paid map
+2. Frontend: Terms modal appears, user accepts
+3. Frontend: POST `/api/checkout {mapId}`
+4. Backend: Calculates discounted price (if applicable)
+5. Backend: Creates Stripe session with calculated amount
+6. Frontend: Redirects to Stripe checkout URL
+7. User: Enters payment info on Stripe
+8. Stripe: Calls webhook POST `/api/webhook`
+9. Backend: Creates Order record
+10. Frontend: Redirects to `/success` page
+11. User: Enters email to verify purchase and download
 
-**Backend Code**:
-```javascript
-const session = await stripe.checkout.sessions.create({
-  payment_method_types: ['card'],
-  line_items: [{
-    price_data: {
-      currency: 'eur',
-      product_data: { name: map.title },
-      unit_amount: map.price // in cents
-    },
-    quantity: 1
-  }],
-  mode: 'payment',
-  success_url: `${process.env.CLIENT_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-  cancel_url: `${process.env.CLIENT_URL}/cancel`,
-  metadata: { mapId: map.id }
-});
-```
-
-### Webhook Verification
-
-**Stripe sends signed webhook**:
-```javascript
-const event = stripe.webhooks.constructEvent(
-  req.body, // Raw body (not JSON parsed!)
-  req.headers['stripe-signature'],
-  process.env.STRIPE_WEBHOOK_SECRET
-);
-```
-
-**Key Security Point**: Body must be raw (not parsed to JSON) for signature verification.
-
-### Order Recording
-
-**On checkout.session.completed**:
-```javascript
-await prisma.order.create({
-  data: {
-    mapId: Number(session.metadata.mapId),
-    stripeSessionId: session.id,
-    buyerEmail: session.customer_details.email,
-    amountPaid: session.amount_total
-  }
-});
-```
-
-This enables download verification by checking if an order exists for `(mapId, buyerEmail)`.
-
-### Price Handling
-
-- **Storage**: Always in cents (100 = €1.00)
-- **Stripe**: Expects cents (unit_amount: 2500)
-- **Display**: Format in frontend (€25.00)
-- **Free maps**: price = 0, no Stripe session needed
+**Webhook Security**:
+- Verify signature using `STRIPE_WEBHOOK_SECRET`
+- Prevent duplicate orders by checking `stripeSessionId` uniqueness
+- Log events for debugging
 
 ---
 
-## Frontend Integration
+## Authentication & Security
 
-### Installation & Setup
+### JWT Token System
 
-1. **Install dependencies**:
-   ```bash
-   npm install axios  # or fetch if preferred
-   ```
-
-2. **Create API client** (e.g., `api/client.js`):
-   ```javascript
-   const API_BASE = 'http://localhost:5000';
-
-   export const apiClient = {
-     // Public
-     getMaps: () => fetch(`${API_BASE}/`).then(r => r.json()),
-     getMapDetail: (id) => fetch(`${API_BASE}/${id}`).then(r => r.json()),
-
-     // Auth
-     login: (username, password) => 
-       fetch(`${API_BASE}/auth/login`, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ username, password })
-       }).then(r => r.json()),
-
-     // Admin (all require token in header)
-     adminGetMaps: (token) =>
-       fetch(`${API_BASE}/admin/maps`, {
-         headers: { 'authorization': token }
-       }).then(r => r.json()),
-
-     adminCreateMap: (token, mapData) =>
-       fetch(`${API_BASE}/admin/maps`, {
-         method: 'POST',
-         headers: {
-           'authorization': token,
-           'Content-Type': 'application/json'
-         },
-         body: JSON.stringify(mapData)
-       }).then(r => r.json()),
-
-     adminUpload: (token, file, type) => {
-       const formData = new FormData();
-       formData.append('file', file);
-       return fetch(`${API_BASE}/admin/upload?type=${type}`, {
-         method: 'POST',
-         headers: { 'authorization': token },
-         body: formData
-       }).then(r => r.json());
-     },
-
-     // Payment
-     createCheckout: (mapId) =>
-       fetch(`${API_BASE}/api/checkout`, {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json' },
-         body: JSON.stringify({ mapId })
-       }).then(r => r.json()),
-
-     getDownload: (mapId, email) =>
-       fetch(`${API_BASE}/api/download/${mapId}${email ? '?email=' + email : ''}`).then(r => r.json())
-   };
-   ```
-
-### Common Workflows
-
-**Public Map Browsing**:
+**Token Generation**:
 ```javascript
-// List all maps
-const maps = await apiClient.getMaps();
-
-// Show in grid/list component
-maps.forEach(map => {
-  console.log(`${map.title} - €${(map.price / 100).toFixed(2)}`);
-});
-
-// Get details when user clicks a map
-const detail = await apiClient.getMapDetail(1);
+const token = jwt.sign(
+  { username: admin_username },
+  process.env.JWT_AUTH,
+  { expiresIn: '12h' }
+);
 ```
 
-**Admin Login**:
+**Token Verification**:
 ```javascript
-const response = await apiClient.login('admin', 'password');
-const token = response.token;
-
-// Store token (e.g., in localStorage)
-localStorage.setItem('authToken', token);
-
-// Use in subsequent requests
-const maps = await apiClient.adminGetMaps(token);
+const decoded = jwt.verify(token, process.env.JWT_AUTH);
 ```
 
-**Upload and Create Map**:
+**Frontend Storage**:
+- Stored in `localStorage`
+- Sent in `authorization` header on protected requests
+- Cleared on logout
+
+### Password Security
+
+**Hashing**:
 ```javascript
-const token = localStorage.getItem('authToken');
-
-// Upload map file
-const uploadResp = await apiClient.adminUpload(token, mapFile, 'map');
-const fileUrl = uploadResp.filePath;
-
-// Upload thumbnail
-const thumbResp = await apiClient.adminUpload(token, thumbnailFile, 'thumbnail');
-const thumbnail = thumbResp.filePath;
-
-// Create map record
-const createResp = await apiClient.adminCreateMap(token, {
-  title: 'My Map',
-  description: 'A cool map',
-  price: 2500,
-  fileUrl,
-  thumbnail,
-  tags: ['adventure'],
-  published: true
-});
+const hashed = await bcrypt.hash(password, 10);
 ```
 
-**Free Map Download**:
+**Verification**:
 ```javascript
-const downloadResp = await apiClient.getDownload(2);
-const { downloadUrl } = downloadResp;
-// Open in new window or trigger download
-window.open(downloadUrl, '_blank');
+const valid = await bcrypt.compare(inputPassword, storedHash);
 ```
 
-**Paid Map Purchase**:
+**Admin Credentials**:
+- Store `ADMIN_PASSWORD` as bcrypt hash in `.env`
+- Never store plaintext passwords
+
+### Protected Routes
+
+**Middleware** (`backend/middleware/authMiddleware.js`):
 ```javascript
-// Step 1: Create checkout session
-const checkoutResp = await apiClient.createCheckout(1);
-const checkoutUrl = checkoutResp.url;
-
-// Step 2: Redirect to Stripe
-window.location.href = checkoutUrl;
-
-// Step 3: After user completes payment on Stripe,
-// they're redirected back to your app
-// Step 4: On success page, user can download
-const email = 'buyer@example.com'; // From order confirmation
-const downloadResp = await apiClient.getDownload(1, email);
-const { downloadUrl } = downloadResp;
-window.open(downloadUrl, '_blank');
+export const authMiddleware = (req, res, next) => {
+  const token = req.headers.authorization;
+  if (!token) return res.status(401).json({ message: "Unauthorized" });
+  
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_AUTH);
+    req.user = decoded;
+    next();
+  } catch {
+    res.status(401).json({ message: "Invalid token" });
+  }
+};
 ```
 
-### UI Component Examples
+### Terms Acceptance
 
-**Map Card Component** (React):
-```jsx
-function MapCard({ map, onDownload, onPurchase }) {
-  return (
-    <div className="map-card">
-      <img src={map.thumbnail} alt={map.title} />
-      <h3>{map.title2}</h3>
-      <p className="tags">{map.tags.join(', ')}</p>
-      <p className="price">
-        {map.price === 0 ? 'FREE' : `€${(map.price / 100).toFixed(2)}`}
-      </p>
-      <button 
-        onClick={() => map.price === 0 ? onDownload(map.id) : onPurchase(map.id)}
-      >
-        {map.price === 0 ? 'Download' : 'Buy'}
-      </button>
-    </div>
-  );
-}
+**Modal** (`frontend/src/pages/MapDetail.jsx`):
+- Appears only for paid maps (`map.price > 0`)
+- Shows terms text in scrollable box
+- Requires checkbox acceptance to proceed
+- Clicking "Proceed to Checkout" triggers Stripe flow
+
+**Terms Text**:
 ```
-
-**Admin Store Component** (React):
-```jsx
-function AdminStore({ token }) {
-  const [maps, setMaps] = useState([]);
-
-  useEffect(() => {
-    apiClient.adminGetMaps(token).then(setMaps);
-  }, [token]);
-
-  const handleCreate = async (mapData) => {
-    const resp = await apiClient.adminCreateMap(token, mapData);
-    setMaps([resp.newMap, ...maps]);
-  };
-
-  const handleDelete = async (mapId) => {
-    await apiClient.adminDeleteMap(token, mapId);
-    setMaps(maps.filter(m => m.id !== mapId));
-  };
-
-  return (
-    <div className="admin-store">
-      <CreateMapForm onSubmit={handleCreate} />
-      {maps.map(map => (
-        <MapRow key={map.id} map={map} onDelete={handleDelete} />
-      ))}
-    </div>
-  );
-}
+I accept the terms of policy when buying this map:
+I do not share the map with others and only buy it for personal use.
+I don't use it in any way for making profit or sharing without making profit.
+(You are allowed to make copies of the file for yourself.
+This way you can replay the map in its saved state or original state.)
 ```
 
 ---
 
 ## Deployment
 
-### Deployment Checklist
+### Backend Deployment (Render, Heroku, etc.)
 
-- [ ] Environment variables configured in deployment platform
-- [ ] Database migrated and initialized
-- [ ] Stripe webhook URL updated to production domain
-- [ ] Frontend `CLIENT_URL` points to production domain
-- [ ] HTTPS enabled on backend and frontend
-- [ ] Supabase credentials secured
-- [ ] JWT secret changed from development value
-- [ ] Admin password changed from default
-- [ ] CORS configured if frontend on different domain
-- [ ] Monitoring/logging set up
-- [ ] Backups configured for database
+1. **Push to Git**:
+   ```bash
+   git add .
+   git commit -m "Your changes"
+   git push origin main
+   ```
 
-### Deployment Options
+2. **Set Environment Variables**:
+   - Add `.env` variables to platform (Render: Environment, Heroku: Config Vars)
 
-**Heroku** (Recommended for beginners):
-```bash
-# 1. Create app
-heroku create your-app-name
+3. **Database Migration**:
+   - Platform runs: `npx prisma migrate deploy`
 
-# 2. Set environment variables
-heroku config:set DATABASE_URL=···
-heroku config:set JWT_AUTH=···
-# ... (set all environment variables)
+4. **Start Command**:
+   ```bash
+   node server.js
+   ```
 
-# 3. Push code
-git push heroku main
+### Frontend Deployment (Vercel, Netlify)
 
-# 4. Run migrations
-heroku run npx prisma db push
+1. **Build Project**:
+   ```bash
+   npm run build
+   ```
 
-# 5. View logs
-heroku logs --tail
-```
+2. **Deploy Build Output** (`dist/` folder)
 
-**Vercel/Netlify** (Frontend) + Railway/Fly.io (Backend):
-- Deploy frontend separately
-- Deploy backend to hosting service
-- Update `CLIENT_URL` and `DATABASE_URL` in backend environment
+3. **Environment Configuration**:
+   - Set `VITE_API_BASE_URL` if API URL differs
+   - Frontend currently uses hardcoded: `https://landermaps.onrender.com`
 
-**Docker** (Any cloud):
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install --production
-COPY . .
-EXPOSE 5000
-CMD ["npm", "run", "prod"]  # Add prod script to package.json
-```
+4. **Redirect Configuration** (`vercel.json`):
+   ```json
+   {
+     "rewrites": [
+       { "source": "/(.*)", "destination": "/index.html" }
+     ]
+   }
+   ```
 
 ---
 
 ## Development Workflow
 
-### Local Development
+### Running Both Servers Locally
 
-1. **Start backend**:
-   ```bash
-   cd backend
-   npm run dev
-   ```
+**Terminal 1 - Backend**:
+```bash
+cd backend
+npm run dev
+# Server on http://localhost:5000
+```
 
-2. **Start frontend** (in separate terminal):
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-
-3. **Access**:
-   - Backend: `http://localhost:5000`
-   - Frontend: `http://localhost:3000` (typical)
+**Terminal 2 - Frontend**:
+```bash
+cd frontend
+npm run dev
+# Server on http://localhost:5173
+```
 
 ### Database Changes
 
-**Update Schema**:
+**Schema Update** (`backend/prisma/schema.prisma`):
+```prisma
+model Map {
+  id       Int     @id @default(autoincrement())
+  discount Int?    // Add new field
+}
+```
+
+**Create Migration**:
 ```bash
-# Edit backend/prisma/schema.prisma
-
-# Review changes
-npx prisma migrate dev
-# Follow prompts to create migration
-
-# Or if developing
-npx prisma db push
+npx prisma migrate dev --name add_discount
 ```
 
-**Reset Database** (development only):
+**Apply Existing Migrations**:
 ```bash
-npx prisma migrate reset
-# Clears all data and re-runs migrations
+npx prisma migrate deploy
 ```
 
-### Testing Endpoints
+### Adding New Features
 
-**Postman/Insomnia**:
-- Import `backend/test.rest` if available
-- Test each endpoint with sample data
+1. **Backend**:
+   - Update schema in `schema.prisma`
+   - Create migration: `npx prisma migrate dev --name feature_name`
+   - Update controllers to handle new field
+   - Add API endpoints or modify existing ones
 
-**cURL**:
-```bash
-# Public
-curl http://localhost:5000/
-
-# Auth
-curl -X POST http://localhost:5000/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"username":"admin","password":"..."}'
-
-# Admin (requires token)
-curl http://localhost:5000/admin/maps \
-  -H 'authorization: <token>'
-```
-
-### Debugging
-
-**Backend Logs**:
-```javascript
-// Add console logs
-console.log('Received request:', req.body);
-console.error('Database error:', err);
-```
-
-**Check Database State**:
-```bash
-# Open Prisma Studio
-npx prisma studio
-# Opens browser UI to view/edit data at http://localhost:5555
-```
-
-**Monitor Requests**:
-```bash
-# Use network tab in browser DevTools
-# or add logging middleware to Express
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
-});
-```
+2. **Frontend**:
+   - Update components to display/input new data
+   - Update API calls to send/receive new fields
+   - Test with real backend
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
+### Backend Issues
 
-**Database Connection Error**:
-```
-Error: connect ECONNREFUSED 127.0.0.1:5432
-```
-- Check PostgreSQL is running
-- Verify `DATABASE_URL` is correct
-- For Supabase: Connection pooling vs. direct connection
-
-**JWT Token Invalid**:
-```
-UnauthorizedError: invalid token
-```
-- Ensure `JWT_AUTH` environment variable matches between login and verification
-- Check token hasn't expired (12 hour expiry)
-- Verify header format: `authorization: token` (no "Bearer" prefix)
-
-**Stripe Webhook Not Firing**:
-- Verify webhook secret in `.env` matches Stripe dashboard
-- Check endpoint URL is publicly accessible (not localhost)
-- Webhook body must be raw (not JSON-parsed)
-- Test webhook in Stripe dashboard → Webhooks → "Send test event"
-
-**File Upload Fails**:
-- Check `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
-- Verify bucket "maps" exists in Supabase
-- Check file size limits
-- Ensure bucket permissions allow uploads
-
-**Maps Not Showing in Public List**:
-- Verify `published: true` on map records
-- Check in Prisma Studio: `npx prisma studio`
-- Confirm database is populated
-
-**Admin Can't Create Map**:
-- Verify JWT token is valid and not expired
-- Check all required fields provided: title, description, price, fileUrl, thumbnail
-- Verify `ADMIN_PASSWORD` in `.env` is bcrypt-hashed
-
-### Debug Mode
-
-**Enable Verbose Logging**:
-```javascript
-// In server.js
-import 'dotenv/config';
-
-// Log all requests
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  console.log('Headers:', req.headers);
-  console.log('Body:', req.body);
-  next();
-});
-
-// Log database queries
-const prisma = new PrismaClient({
-  log: [
-    { emit: 'stdout', level: 'query' },
-    { emit: 'stdout', level: 'error' },
-    { emit: 'stdout', level: 'warn' },
-  ],
-});
-```
-
-**Check Prisma Client State**:
+**"Cannot find module"**:
 ```bash
-npx prisma db execute --stdin < query.sql
-# Or use Prisma Studio
-npx prisma studio
+npm install
+npx prisma generate
 ```
+
+**Database connection error**:
+- Verify `DATABASE_URL` in `.env`
+- Test connection: `psql [connection_string]`
+- Check Supabase dashboard for IP whitelisting
+
+**Stripe webhook not triggering**:
+- Verify `STRIPE_WEBHOOK_SECRET` in `.env`
+- Check Stripe dashboard → Webhooks → Recent attempts
+- Ensure backend is publicly accessible
+
+**File upload fails**:
+- Verify `SUPABASE_URL` and `SUPABASE_SERVICE_KEY`
+- Check Supabase storage bucket exists
+- Verify bucket permissions (public read)
+
+### Frontend Issues
+
+**Vite dev server won't start**:
+```bash
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+```
+
+**Styles not loading**:
+- Check CSS-in-JS inline styles
+- Verify Vite config in `vite.config.js`
+
+**API calls failing**:
+- Check backend URL in `frontend/src/api/api.js`
+- Verify CORS in backend (`backend/server.js`)
+- Check browser console for error details
+
+### Common Errors
+
+**"Discount must be between 0 and 100"**:
+- Admin entered discount outside range
+- Solution: Enter number between 0-100
+
+**"Payment Cancelled"**:
+- User clicked back button on Stripe
+- Frontend should show Cancel page with "No worries — you were not charged"
+
+**"Map not found" after discount set**:
+- Likely API caching issue
+- Solution: Refresh page or clear browser cache
 
 ---
 
 ## Code Examples
 
-### Complete Admin Workflow (Pseudocode)
+### Creating a Discounted Map via API
 
-```javascript
-// Frontend: Admin Dashboard
-
-// 1. Login
-const loginResp = await fetch('/auth/login', {
-  method: 'POST',
-  body: JSON.stringify({ username: 'admin', password: 'pass' })
-});
-const { token } = await loginResp.json();
-localStorage.setItem('authToken', token);
-
-// 2. Upload Map File
-const mapFile = fileInput.files[0];
-const uploadResp = await fetch('/admin/upload?type=map', {
-  method: 'POST',
-  headers: { 'authorization': token },
-  body: new FormData().add('file', mapFile)
-});
-const { filePath: fileUrl } = await uploadResp.json();
-
-// 3. Upload Thumbnail
-const thumbFile = thumbInput.files[0];
-const thumbResp = await fetch('/admin/upload?type=thumbnail', {
-  method: 'POST',
-  headers: { 'authorization': token },
-  body: new FormData().add('file', thumbFile)
-});
-const { filePath: thumbnail } = await thumbResp.json();
-
-// 4. Create Map Record
-const createResp = await fetch('/admin/maps', {
-  method: 'POST',
-  headers: {
-    'authorization': token,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    title: 'My Adventure Map',
-    description: 'Epic exploration adventure',
-    price: 2500, // €25.00
-    fileUrl,
-    thumbnail,
-    tags: ['adventure', 'exploration'],
-    published: true
-  })
-});
-const { newMap } = await createResp.json();
-
-// 5. View All Maps
-const mapsResp = await fetch('/admin/maps', {
-  headers: { 'authorization': token }
-});
-const allMaps = await mapsResp.json();
-
-// 6. Update Map
-const updateResp = await fetch(`/admin/maps/${newMap.id}`, {
-  method: 'PATCH',
-  headers: {
-    'authorization': token,
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({ price: 3000 })
-});
-
-// 7. Delete Map
-const deleteResp = await fetch(`/admin/maps/${newMap.id}`, {
-  method: 'DELETE',
-  headers: { 'authorization': token }
-});
+**Request**:
+```bash
+curl -X POST http://localhost:5000/admin/maps \
+  -H "authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Adventure Map",
+    "description": "Explore dungeons",
+    "price": 5000,
+    "discount": 20,
+    "fileUrl": "maps/1712000000000_adventure.zip",
+    "filePath": "maps/1712000000000_adventure.zip",
+    "thumbnail": "thumbnails/1712000000000_thumb.png",
+    "thumbnailPath": "thumbnails/1712000000000_thumb.png",
+    "tags": ["adventure"],
+    "published": true
+  }'
 ```
 
-### Complete Purchase Workflow
+### Calculating Discounted Price in JavaScript
 
+**Frontend**:
 ```javascript
-// Frontend: Customer
-
-// 1. Browse Maps
-const maps = await fetch('/').then(r => r.json());
-
-// 2. Get Map Detail
-const map = await fetch('/1').then(r => r.json());
-
-// 3a. For Free Map: Download directly
-if (map.price === 0) {
-  const dl = await fetch('/api/download/1').then(r => r.json());
-  window.open(dl.downloadUrl);
+function calculateFinalPrice(price, discount) {
+  if (!discount) return price;
+  return Math.round(price * (100 - discount) / 100);
 }
 
-// 3b. For Paid Map: Checkout
-const checkoutResp = await fetch('/api/checkout', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ mapId: 1 })
+const original = 5000; // €50.00
+const discount = 20;
+const final = calculateFinalPrice(original, discount); // 4000 (€40.00)
+```
+
+**Backend** (in payment controller):
+```javascript
+const finalPrice = map.discount
+  ? Math.round(map.price * (100 - map.discount) / 100)
+  : map.price;
+```
+
+### Handling Discounts in Stripe Session
+
+```javascript
+const map = await prisma.map.findUnique({ where: { id: Number(mapId) } });
+
+const finalPrice = map.discount
+  ? Math.round(map.price * (100 - map.discount) / 100)
+  : map.price;
+
+const session = await stripe.checkout.sessions.create({
+  line_items: [{
+    price_data: {
+      currency: 'eur',
+      product_data: { name: map.title },
+      unit_amount: finalPrice
+    },
+    quantity: 1
+  }],
+  // ... rest of session config
 });
-const { url } = await checkoutResp.json();
-
-// 4. Redirect to Stripe
-window.location.href = url;
-
-// 5. User completes payment on Stripe
-// Stripe redirects to your success page
-
-// 6. Download after purchase
-const email = 'buyer@example.com'; // From order
-const dlResp = await fetch(`/api/download/1?email=${email}`).then(r => r.json());
-window.open(dlResp.downloadUrl);
 ```
 
 ---
 
-## Summary Table
+## File Structure
 
-### All Routes at a Glance
-
-| Method | Endpoint | Auth | Purpose |
-|--------|----------|------|---------|
-| GET | `/` | No | List published maps |
-| GET | `/:id` | No | Get map details |
-| POST | `/auth/login` | No | Admin login |
-| GET | `/admin/maps` | Yes | List all maps |
-| POST | `/admin/maps` | Yes | Create map |
-| PATCH | `/admin/maps/:id` | Yes | Update map |
-| DELETE | `/admin/maps/:id` | Yes | Delete map |
-| POST | `/admin/upload` | Yes | Upload file |
-| POST | `/api/checkout` | No | Create Stripe session |
-| GET | `/api/download/:id` | No | Get download URL |
-| POST | `/api/webhook` | Stripe | Stripe webhook |
-
----
-
-## Quick Reference
-
-**Start Development**:
-```bash
-cd backend && npm install && npm run dev
+```
+landerMaps/
+├── backend/
+│   ├── server.js                 # Main entry point
+│   ├── package.json              # Dependencies
+│   ├── .env                       # Environment variables
+│   ├── prisma/
+│   │   ├── schema.prisma         # Database schema
+│   │   └── migrations/           # Migration history
+│   ├── controllers/
+│   │   ├── adminController.js    # Map CRUD operations
+│   │   ├── authController.js     # Login endpoint
+│   │   ├── publicController.js   # Public endpoints
+│   │   └── paymentController.js  # Stripe + downloads
+│   ├── routes/
+│   │   ├── adminRoutes.js        # Admin endpoints
+│   │   ├── authRoute.js          # Auth endpoints
+│   │   ├── publicRoute.js        # Public endpoints
+│   │   └── paymentRoute.js       # Payment endpoints
+│   └── middleware/
+│       ├── authMiddleware.js     # JWT verification
+│       └── uploadMiddleware.js   # File upload config
+│
+├── frontend/
+│   ├── src/
+│   │   ├── main.jsx              # Entry point
+│   │   ├── App.jsx               # Router setup
+│   │   ├── api/
+│   │   │   └── api.js            # Axios instance + endpoints
+│   │   ├── pages/
+│   │   │   ├── Home.jsx          # Homepage with map grid
+│   │   │   ├── MapDetail.jsx     # Map details + purchase
+│   │   │   ├── AdminDashboard.jsx # Admin controls
+│   │   │   ├── AdminLogin.jsx    # Admin login
+│   │   │   ├── Success.jsx       # Payment success
+│   │   │   └── Cancel.jsx        # Payment cancelled
+│   │   └── components/
+│   │       └── Navbar.jsx        # Navigation
+│   ├── package.json              # Dependencies
+│   └── vite.config.js            # Vite configuration
+│
+└── ULTRA_DOCUMENTATION.md        # This file
 ```
 
-**Example Login**:
-- Username: `admin`
-- Password: (from `.env` ADMIN_PASSWORD before hashing)
+---
 
-**Example Map Price**:
-- 2500 cents = €25.00
+## Summary
 
-**Example Free Map Download**:
-- GET `/api/download/2` (no email needed)
+LanderMaps is a complete marketplace for Minecraft maps with:
+- **Secure authentication** (JWT + bcrypt)
+- **Payment processing** (Stripe with discount support)
+- **File storage** (Supabase)
+- **Database management** (Prisma + PostgreSQL)
+- **Discount system** (percentage-based, automatic calculation)
+- **Terms acceptance** (required for paid purchases)
+- **Responsive UI** (React with pixel-art theme)
+- **Admin controls** (full CRUD + discount management)
 
-**Example Paid Map Download**:
-- GET `/api/download/1?email=buyer@example.com`
-
-**Token Header Format**:
-- `authorization: eyJhbGc...` (token itself, not "Bearer token")
-
-**All Prices in Cents**:
-- Frontend displays: €(price/100).toFixed(2)
-- Request/response: always in cents
+All features work together seamlessly to provide a professional, user-friendly marketplace experience.
 
 ---
 
-**Last Updated**: April 10, 2026  
-**Version**: 1.0 - Complete Implementation  
-**Project**: LanderMaps Backend - Minecraft Map Marketplace
+**Last Updated**: 2026-05-28
+**Version**: 2.0 (with discount system and terms acceptance)

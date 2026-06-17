@@ -80,7 +80,7 @@ export default function Home() {
             { icon: '🏰', label: 'Custom Builds', color: '#b8955a', border: '#5c3318', bg: 'rgba(92,51,24,0.25)' },
             { icon: '★', label: 'Good Quality', color: '#f0c040', border: '#8a6010', bg: 'rgba(138,96,16,0.2)' },
           ].map(p => (
-            <span key={p.label} style={{x
+            <span key={p.label} style={{
               fontFamily: 'var(--pixel)',
               fontSize: '8px',
               color: p.color,

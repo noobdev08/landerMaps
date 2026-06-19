@@ -361,7 +361,7 @@ export default function MapDetail() {
               overflowY: 'auto',
             }}>
               <p style={{ margin: '0 0 12px' }}>
-                I accept the terms of policy when buying this map: I do not share the map with others and only buy it for personal use. I don't use it in any way for making profit or sharing without making profit.
+                I do not share the map with others and only buy it for personal use. I don't use it in any way for making profit or sharing without making profit.
               </p>
               <p style={{ margin: '0' }}>
                 You are allowed to make copies of the file for yourself. This way you can replay the map in its saved state or original state.

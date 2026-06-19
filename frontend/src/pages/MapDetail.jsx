@@ -292,7 +292,7 @@ export default function MapDetail() {
                     onBlur={e => e.target.style.borderColor = '#2a1500'}
                   />
                   <PixelBtn variant="brown" fullWidth onClick={handleDownload} disabled={downloading}>
-                    {downloading ? 'Checking...' : '⬇ Get Download'}
+                    {downloading ? 'Checking...' : '⬇ Download'}
                   </PixelBtn>
                 </div>
               </>

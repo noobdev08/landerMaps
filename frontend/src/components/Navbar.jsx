@@ -1,13 +1,16 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const isAdmin = !!localStorage.getItem('token');
+  const { token, logout } = useAuth();
+  const isAdmin = !!token;
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const handleLogout = () => {
+    logout();
     navigate('/');
   };
+
 
   return (
     <nav style={{ position: 'sticky', top: 0, zIndex: 100 }}>
@@ -74,7 +77,7 @@ export default function Navbar() {
                 <Link to="/admin">
                   <NavBtn variant="green">Dashboard</NavBtn>
                 </Link>
-                <NavBtn variant="red" onClick={logout}>Logout</NavBtn>
+                <NavBtn variant="red" onClick={handleLogout}>Logout</NavBtn>
               </>
             ) : (
               <Link to="/admin/login">

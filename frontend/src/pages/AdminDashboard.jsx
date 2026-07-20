@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminGetMaps, createMap, updateMap, deleteMap, uploadFile } from '../api/api';
 import Navbar from '../components/Navbar.jsx';
+import { useAuth } from '../context/AuthContext';
 
 const emptyForm = {
   title: '', description: '', price: '',
@@ -16,16 +17,22 @@ export default function AdminDashboard() {
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState('');
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   useEffect(() => {
-    if (!localStorage.getItem('token')) { navigate('/admin/login'); return; }
     fetchMaps();
   }, []);
 
   const fetchMaps = async () => {
-    try { const res = await adminGetMaps(); setMaps(res.data); }
-    catch { navigate('/admin/login'); }
+    try {
+      const res = await adminGetMaps();
+      setMaps(res.data);
+    } catch {
+      logout();
+      navigate('/admin/login');
+    }
   };
+
 
   const handleUpload = async (e, type) => {
     const file = e.target.files[0];

@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../api/api';
+import { login as apiLogin } from '../api/api';
 import Navbar from '../components/Navbar';
+import { useAuth } from '../context/AuthContext';
  
 export function AdminLogin() {
   const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
  
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await login(form);
-      localStorage.setItem('token', res.data.token);
+      const res = await apiLogin(form);
+      login(res.data.token);
       navigate('/admin');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed');
@@ -22,6 +24,7 @@ export function AdminLogin() {
       setLoading(false);
     }
   };
+
  
   return (
     <div style={{ minHeight: '100vh', background: '#0d0d0d' }}>
